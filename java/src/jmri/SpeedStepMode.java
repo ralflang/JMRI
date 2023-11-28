@@ -28,7 +28,15 @@ public enum SpeedStepMode {
     NMRA_DCC_27("27", 27, "SpeedStep27"),
     NMRA_DCC_14("14", 14, "SpeedStep14"),
     // Non-DCC speed step modes.
+    /**
+     * There is ambiguity here. MM2 is documented as either 14 or 27 in the same 1st party document speaking about
+     * DCC as 14/28/128. 3rd party sources say as of CS1, there were decoders with 14, 27 (marklin 60902) and 28 steps (ESU LokPilot 3).
+     */
     MOTOROLA_28("motorola_28", 28, "SpeedStep28Motorola"), // Motorola 28 speed step mode.
+    MOTOROLA_27("motorola_27", 27, "SpeedStep27Motorola"), // Motorola 27 speed step mode.
+    MFX_128("mfx_128", 128, "SpeedStep128Mfx"), // Alias M4. Ambiguity in official docs, some say 127, some say 128.
+    SELECTRIX_31(selectrix_31, 31, "SpeedStep31Selectrix") // Selectrix docs say it's 0-30 (4 bit)
+    SELECTRIX_127(selectrix_127, 127, "SpeedStep31Selectrix") // Selectrix 2 format
     TMCC_32("tmcc_32", 32, "SpeedStep32TMCC"), // Lionel TMCC 32 speed step mode.
     INCREMENTAL("incremental", 1, 1.0f, "SpeedStepIncremental");
 
