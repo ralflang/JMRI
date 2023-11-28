@@ -68,6 +68,8 @@ public class MarklinThrottleManager extends AbstractThrottleManager implements M
 
     /**
      * Are there any ambiguous addresses (short vs long) on this system?
+     *
+     * This implementation is likely wrong as soon as we have MM2/Selectrix/DCC ambiguity.
      */
     @Override
     public boolean addressTypeUnique() {
@@ -89,7 +91,10 @@ public class MarklinThrottleManager extends AbstractThrottleManager implements M
         return new String[]{
             LocoAddress.Protocol.DCC.getPeopleName(),
             LocoAddress.Protocol.MFX.getPeopleName(),
-            LocoAddress.Protocol.MOTOROLA.getPeopleName()};
+            LocoAddress.Protocol.M4.getPeopleName(), // Remove this once we agree that M4 and MFX are the same
+            LocoAddress.Protocol.MOTOROLA.getPeopleName()}, // Don't we ever consider MM1/Delta/MM2/EDITS? Let's just pretend they are all crippled versions of MM2
+            LocoAddress.Protocol.SELECTRIX.getPeopleName() // Do we even have a concept of discerning SX1 and SX2 protocols?
+        };
     }
 
     @Override
@@ -97,18 +102,26 @@ public class MarklinThrottleManager extends AbstractThrottleManager implements M
         return new LocoAddress.Protocol[]{
             LocoAddress.Protocol.DCC,
             LocoAddress.Protocol.MFX,
-            LocoAddress.Protocol.MOTOROLA};
+            LocoAddress.Protocol.M4.getPeopleName(), // Remove this once we agree that M4 and MFX are the same
+            LocoAddress.Protocol.MOTOROLA.getPeopleName()}, // Don't we ever consider MM1/Delta/MM2/EDITS? Let's just pretend they are all crippled versions of MM2
+            LocoAddress.Protocol.SELECTRIX.getPeopleName() // Do we even have a concept of discerning SX1 and SX2 protocols?
     }
 
     /*
      * Local method for deciding short/long address
      */
     static boolean isLongAddress(int num) {
+        // TODO: And protocol is DCC
         return (num >= 100);
     }
 
     @Override
     public EnumSet<SpeedStepMode> supportedSpeedModes() {
+        /**
+         * This implementation is misleading. Both high tier CS2/CS3 and low tier TrackBox stations supports
+         * different speed step modes for different protocols and decoders. Should we just add all versions per protocol?
+         */
+
         return EnumSet.of(SpeedStepMode.NMRA_DCC_128, SpeedStepMode.NMRA_DCC_28);
     }
 

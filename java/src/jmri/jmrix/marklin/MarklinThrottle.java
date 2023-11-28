@@ -124,11 +124,11 @@ public class MarklinThrottle extends AbstractThrottle implements MarklinListener
         if (value > 1000) {
             value = 1000;    // max possible speed
         }
-        
+
         if (this.speedSetting > 0 && value == 0) {
             value = 1;      // ensure non-zero input results in non-zero output
         }
-        
+
         if (value < 0) {
             //Emergency Stop
             tc.sendMarklinMessage(MarklinMessage.setLocoEmergencyStop(getCANAddress()), this);
@@ -173,7 +173,10 @@ public class MarklinThrottle extends AbstractThrottle implements MarklinListener
         boolean isLong = adapterMemo.get(jmri.ThrottleManager.class).canBeLongAddress(address.getNumber());
         switch (address.getProtocol()) {
             case DCC:
-                if (Mode == SpeedStepMode.NMRA_DCC_28 && isLong) {
+                // No known decoder supports long format but has 14 steps
+                if (Mode == SpeedStepMode.NMRA_DCC_14 && !isLong) {
+                    tc.sendMarklinMessage(MarklinMessage.setLocoSpeedSteps(getCANAddress(), MarklinConstants.STEPSHORT14), this);
+                else if (Mode == SpeedStepMode.NMRA_DCC_28 && isLong) {
                     tc.sendMarklinMessage(MarklinMessage.setLocoSpeedSteps(getCANAddress(), MarklinConstants.STEPLONG28), this);
                 } else if (Mode == SpeedStepMode.NMRA_DCC_28 && !isLong) {
                     tc.sendMarklinMessage(MarklinMessage.setLocoSpeedSteps(getCANAddress(), MarklinConstants.STEPSHORT28), this);
