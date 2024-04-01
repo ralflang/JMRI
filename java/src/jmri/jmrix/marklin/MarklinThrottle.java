@@ -176,7 +176,7 @@ public class MarklinThrottle extends AbstractThrottle implements MarklinListener
                 // No known decoder supports long format but has 14 steps
                 if (Mode == SpeedStepMode.NMRA_DCC_14 && !isLong) {
                     tc.sendMarklinMessage(MarklinMessage.setLocoSpeedSteps(getCANAddress(), MarklinConstants.STEPSHORT14), this);
-                else if (Mode == SpeedStepMode.NMRA_DCC_28 && isLong) {
+                } else if (Mode == SpeedStepMode.NMRA_DCC_28 && isLong) {
                     tc.sendMarklinMessage(MarklinMessage.setLocoSpeedSteps(getCANAddress(), MarklinConstants.STEPLONG28), this);
                 } else if (Mode == SpeedStepMode.NMRA_DCC_28 && !isLong) {
                     tc.sendMarklinMessage(MarklinMessage.setLocoSpeedSteps(getCANAddress(), MarklinConstants.STEPSHORT28), this);

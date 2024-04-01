@@ -92,7 +92,7 @@ public class MarklinThrottleManager extends AbstractThrottleManager implements M
             LocoAddress.Protocol.DCC.getPeopleName(),
             LocoAddress.Protocol.MFX.getPeopleName(),
             LocoAddress.Protocol.M4.getPeopleName(), // Remove this once we agree that M4 and MFX are the same
-            LocoAddress.Protocol.MOTOROLA.getPeopleName()}, // Don't we ever consider MM1/Delta/MM2/EDITS? Let's just pretend they are all crippled versions of MM2
+            LocoAddress.Protocol.MOTOROLA.getPeopleName(), // Don't we ever consider MM1/Delta/MM2/EDITS? Let's just pretend they are all crippled versions of MM2
             LocoAddress.Protocol.SELECTRIX.getPeopleName() // Do we even have a concept of discerning SX1 and SX2 protocols?
         };
     }
@@ -102,9 +102,10 @@ public class MarklinThrottleManager extends AbstractThrottleManager implements M
         return new LocoAddress.Protocol[]{
             LocoAddress.Protocol.DCC,
             LocoAddress.Protocol.MFX,
-            LocoAddress.Protocol.M4.getPeopleName(), // Remove this once we agree that M4 and MFX are the same
-            LocoAddress.Protocol.MOTOROLA.getPeopleName()}, // Don't we ever consider MM1/Delta/MM2/EDITS? Let's just pretend they are all crippled versions of MM2
-            LocoAddress.Protocol.SELECTRIX.getPeopleName() // Do we even have a concept of discerning SX1 and SX2 protocols?
+            LocoAddress.Protocol.M4, // Remove this once we agree that M4 and MFX are the same
+            LocoAddress.Protocol.MOTOROLA, // Don't we ever consider MM1/Delta/MM2/EDITS? Let's just pretend they are all crippled versions of MM2
+            LocoAddress.Protocol.SELECTRIX // Do we even have a concept of discerning SX1 and SX2 protocols?
+        };
     }
 
     /*

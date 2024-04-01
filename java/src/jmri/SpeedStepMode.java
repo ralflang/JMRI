@@ -35,8 +35,8 @@ public enum SpeedStepMode {
     MOTOROLA_28("motorola_28", 28, "SpeedStep28Motorola"), // Motorola 28 speed step mode.
     MOTOROLA_27("motorola_27", 27, "SpeedStep27Motorola"), // Motorola 27 speed step mode.
     MFX_128("mfx_128", 128, "SpeedStep128Mfx"), // Alias M4. Ambiguity in official docs, some say 127, some say 128.
-    SELECTRIX_31(selectrix_31, 31, "SpeedStep31Selectrix") // Selectrix docs say it's 0-30 (4 bit)
-    SELECTRIX_127(selectrix_127, 127, "SpeedStep31Selectrix") // Selectrix 2 format
+    SELECTRIX_31("selectrix_31", 31, "SpeedStep31Selectrix"), // Selectrix docs say it's 0-30 (4 bit)
+    SELECTRIX_127("selectrix_127", 127, "SpeedStep127Selectrix"), // Selectrix 2 format
     TMCC_32("tmcc_32", 32, "SpeedStep32TMCC"), // Lionel TMCC 32 speed step mode.
     INCREMENTAL("incremental", 1, 1.0f, "SpeedStepIncremental");
 

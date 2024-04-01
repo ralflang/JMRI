@@ -66,6 +66,15 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
      super(m);
      }*/
     // static methods to return a formatted message
+    /**
+     * System Go
+     *
+     * Enable track signal and power from all command stations in the bus
+     * Including programming track and main track
+     * Restore any memoized speed levels and functions
+     *
+     * Why is this a get?
+     */
     static public MarklinMessage getEnableMain() {
         MarklinMessage m = new MarklinMessage();
         m.setElement(0, MarklinConstants.SYSCOMMANDSTART & 0xFF);
@@ -77,7 +86,15 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
         m.setElement(9, MarklinConstants.CMDGOSYS & 0xFF); //Turn main on 0x01
         return m;
     }
+    // TODO: getEnableMain(ThrottleId)
 
+    /**
+     * System Stop
+     *
+     * Remove track signal and power from all command stations in the bus
+     * Including programming track and main track
+     * Do not null speeds or functions
+     */
     static public MarklinMessage getKillMain() {
         MarklinMessage m = new MarklinMessage();
         m.setElement(0, MarklinConstants.SYSCOMMANDSTART & 0xFF);
@@ -89,6 +106,29 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
         m.setElement(9, MarklinConstants.CMDSTOPSYS & 0xFF); //Turn main off 0x00
         return m;
     }
+    // TODO: getKillMain(ThrottleId)
+
+    /**
+     * Halt all trains observing their individual braking patterns
+     * Do NOT remove track power / track signal
+     *
+     * Official docs example: 00004711 5 00 00 00 00 02 Halt for all
+     */
+    static public MarklinMessage getSystemHalt()
+    {
+        MarklinMessage m = new MarklinMessage();
+        // TODO: setElement
+        return m;
+    }
+
+    // TODO: Implement getSystemHalt with a target command station, i.e. 00004711 5 43 53 32 08 02 Halt specific throttle, (CS2 with serial 04)
+
+
+    // TODO: getSystemReset
+    /**
+     * Reset a specific device in the can bus
+     */
+
 
     //static public MarklinMessage get
     static public MarklinMessage getSetTurnout(int addr, int state, int power) {
@@ -137,6 +177,62 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
         return m;
     }
 
+    /**
+     * Throttle Ping
+     *
+     * All throttles are expected to answer with their type and software version
+     */
+
+
+    /**
+     * Set default how long an accessory decoder should power on before shutting down again
+     *
+     * Can be overridden in a specific accessory command
+     * 0 means builtin defaults.
+     * Each step is 10ms, capped at 163 seconds.
+     * Note that many accessory decoders have an internal opinion on shutting down before command station asks them
+     */
+/*     static public MarklinMessage setAccessoryDefaultImpulseTime()
+    {
+
+    }
+*/
+    // TODO:
+    /**
+     * EndLocoCycle
+     * Make the track format processor remove the loco from the active roster
+     * The loco is still in the local throttle's roster but period repeats of the loco's last commands cease
+     * The loco will no longer be considered for system wide emergency stops. System Go will not revive it.
+     * TrackBox has a different active roster limit than CS2/CS3
+     *
+     */
+    // TODO:
+    /**
+     * setActiveTrackProtocols
+     *
+     * Send an 8 bit mask of active and inactive track protocols
+     *
+     * Bit 0 MM2
+     * Bit 1 MFX
+     * Bit 2 DCC
+     * Bit 3-7 Reserved (as of 2012)
+     *
+     * TODO: Figure value for Selectrix from a MobileStation 2 with Selectrix Support
+     * The track format processor will not memoize this value when powered off
+     *
+     */
+
+    /**
+     * Emergency stop of a specific loco
+     *
+     * Ignore braking patterns. Will not activate a loco which is not in the active roster.
+     *
+     * Examples from official docs:
+     *
+     * 00004711 5 00 00 00 48 03 Emergency stop MM2     72
+     * 00004711 5 00 00 C0 03 03 Emergency Stop DCC      3
+     * 00004711 5 00 00 40 05 03 Emergency Stop MFX SID  5
+     */
     static public MarklinMessage setLocoEmergencyStop(int addr) {
         MarklinMessage m = new MarklinMessage();
         m.setElement(0, MarklinConstants.SYSCOMMANDSTART & 0xFF);
