@@ -61,6 +61,9 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
         super(m);
     }
 
+    // Below getters getFoo can be read as factory methods as in createFooMessage
+    // However there is an implicit expectation that these follow the method names used for the equivalent message types of other inputs
+
     // from String
     /*public  MarklinMessage(String m) {
      super(m);
@@ -72,8 +75,6 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
      * Enable track signal and power from all command stations in the bus
      * Including programming track and main track
      * Restore any memoized speed levels and functions
-     *
-     * Why is this a get?
      */
     static public MarklinMessage getEnableMain() {
         MarklinMessage m = new MarklinMessage();
