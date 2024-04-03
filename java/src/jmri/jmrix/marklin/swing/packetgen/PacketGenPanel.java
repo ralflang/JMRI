@@ -30,6 +30,8 @@ public class PacketGenPanel extends jmri.jmrix.marklin.swing.MarklinPanel implem
     JLabel entryLabel = new JLabel();
     JLabel replyLabel = new JLabel();
     JButton sendButton = new JButton();
+    JButton killTrackPowerButton = new JButton();
+    JButton enableTrackPowerButton = new JButton();
     JTextField packetTextField = new JTextField(20);
     JTextField packetReplyField = new JTextField(20);
 
@@ -56,6 +58,15 @@ public class PacketGenPanel extends jmri.jmrix.marklin.swing.MarklinPanel implem
         sendButton.setVisible(true);
         sendButton.setToolTipText(Bundle.getMessage("SendToolTip"));
 
+        killTrackPowerButton.setText(Bundle.getMessage("ButtonPowerOff"));
+        killTrackPowerButton.setVisible(true);
+        killTrackPowerButton.setToolTipText(Bundle.getMessage("TrackPowerOffToolTip"));
+
+        enableTrackPowerButton.setText(Bundle.getMessage("ButtonPowerOn"));
+        enableTrackPowerButton.setVisible(true);
+        enableTrackPowerButton.setToolTipText(Bundle.getMessage("TrackPowerOnToolTip"));
+
+
         packetTextField.setText("");
         packetTextField.setToolTipText(Bundle.getMessage("EnterHexToolTip"));
         packetTextField.setMaximumSize(new Dimension(packetTextField
@@ -70,6 +81,8 @@ public class PacketGenPanel extends jmri.jmrix.marklin.swing.MarklinPanel implem
         FlowLayout buttonLayout = new FlowLayout(FlowLayout.TRAILING);
         buttonbox.setLayout(buttonLayout);
         buttonbox.add(sendButton);
+        buttonbox.add(enableTrackPowerButton);
+        buttonbox.add(killTrackPowerButton);
         entrybox.add(buttonbox);
         //packetReplyField.setEditable(false); // keep field editable to allow user to select and copy the reply
         add(entrybox);
@@ -77,6 +90,8 @@ public class PacketGenPanel extends jmri.jmrix.marklin.swing.MarklinPanel implem
         add(Box.createVerticalGlue());
 
         sendButton.addActionListener(this::sendButtonActionPerformed);
+        enableTrackPowerButton.addActionListener(this::handleEnableTrackPowerButton);
+        killTrackPowerButton.addActionListener(this::handleKillTrackPowerButton);
     }
 
     /** 
@@ -102,6 +117,12 @@ public class PacketGenPanel extends jmri.jmrix.marklin.swing.MarklinPanel implem
     public void initComponents(MarklinSystemConnectionMemo memo) {
         super.initComponents(memo);
         memo.getTrafficController().addMarklinListener(this);
+    }
+    public void handleKillTrackPowerButton(java.awt.event.ActionEvent e) {
+        memo.getTrafficController().sendMarklinMessage(MarklinMessage.getEnableMain(), this);
+    }
+    public void handleEnableTrackPowerButton(java.awt.event.ActionEvent e) {
+        memo.getTrafficController().sendMarklinMessage(MarklinMessage.getKillMain(), this);
     }
 
     public void sendButtonActionPerformed(java.awt.event.ActionEvent e) {
