@@ -1,7 +1,8 @@
 package jmri.jmrix.marklin;
 
 /**
- * Carries the reply to an MarklinMessage.
+ * Represents a received message on the MCAN bus.
+ * This can either be a response to a message JMRI sent or it could be an event message sent by another party on the bus.
  *
  * @author Bob Jacobsen Copyright (C) 2001, 2008
  * @author Kevin Dickerson Copyright (C) 2007
