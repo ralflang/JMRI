@@ -24,8 +24,8 @@ public class SerialDriverAdapter extends CdBPortController {
     @Override
     public String openPort(String portName, String appName) {
 
-        // get and open the primary port
-        currentSerialPort = activatePort(portName, log);
+        // get and open the primary port with one stop bit (explicit for reference)
+        currentSerialPort = activatePort(portName, log, 1);
         if (currentSerialPort == null) {
             log.error("failed to connect Marklin CDB to {}", portName);
             return Bundle.getMessage("SerialPortNotFound", portName);
@@ -36,8 +36,9 @@ public class SerialDriverAdapter extends CdBPortController {
         // find the baud rate value, configure comm options
         int baud = currentBaudNumber(mBaudRate);
         setBaudRate(currentSerialPort, baud);
-        configureLeads(currentSerialPort, true, true);
-        setFlowControl(currentSerialPort, FlowControl.NONE);
+        // CC-Schnitte 2.1 does not like DTR.
+        configureLeads(currentSerialPort, true, false);
+        setFlowControl(currentSerialPort, FlowControl.RTSCTS);
 
         // report status
         reportPortStatus(log, portName);
@@ -48,7 +49,7 @@ public class SerialDriverAdapter extends CdBPortController {
     }
 
     /**
-     * set up all of the other objects to operate with an NCE command station
+     * set up all of the other objects to operate with a CdB interfaced MCAN command station bus
      * connected to this port
      */
     @Override
