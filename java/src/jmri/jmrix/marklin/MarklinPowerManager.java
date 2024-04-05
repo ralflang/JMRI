@@ -57,18 +57,26 @@ public class MarklinPowerManager extends AbstractPowerManager<MarklinSystemConne
     @Override
     public void reply(MarklinReply m) {
         int old = power;
-        // power message?
+        /**
+         * TODO: CMDSYSGO and CMDSYSSTOP are also valid if they match our software's own ID.
+         * Currently hardcoded as MarklinMessage::MY_UID but probably should be configurable
+         * TODO: CMDHALTSYS is not a power command. It should be handled in Throttle, not in Power Manager.
+         * It asks all command stations (0) or one command station (by address) to halt all its Locos
+         * observing breaking patterns. It does not shutdown track power or prevent trains from running subsequently.
+         */
         if (m.getPriority() == MarklinConstants.PRIO_1 && m.getCommand() == MarklinConstants.SYSCOMMANDSTART && m.getAddress() == 0x0000) {
             switch (m.getElement(9)) {
                 case MarklinConstants.CMDGOSYS:
                     power = ON;
                     break;
+                    log.debug("Received a CMDGOSYS (Power On) command");
                 case MarklinConstants.CMDSTOPSYS:
+                    log.debug("Received a CMDSTOPSYS (Power On) command");
                 case MarklinConstants.CMDHALTSYS:
                     power = OFF;
                     break;
                 default:
-                    log.warn("Unknown sub command {}", m.getElement(9));
+                    log.warn("Unknown sub command {} in {}", m.getElement(9), m.toString());
             }
             firePowerPropertyChange(old, power);
         }
