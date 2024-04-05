@@ -68,10 +68,15 @@ public class MarklinReply extends jmri.jmrix.AbstractMRReply {
      */
     @Override
     public String toString(){
+        // Represent message as groups of four hex digits separated by spaces
+        // This is the format used by other handlers of MCAN, notably the official docs and Teddy's railcontrol
         StringBuilder buf = new StringBuilder();
-        buf.append("0x").append(Integer.toHexString(_dataChars[0]));
+        buf.append(String.format("0x%02X", _dataChars[0]));
         for (int i = 1; i < _nDataChars; i++) {
-            buf.append(", 0x").append(Integer.toHexString(_dataChars[i]));
+            if (i % 2 == 0) {
+                buf.append(" ");
+            }
+            buf.append(String.format("%02X", _dataChars[i]));
         }
         return buf.toString();
     }
@@ -118,7 +123,7 @@ public class MarklinReply extends jmri.jmrix.AbstractMRReply {
     }
 
     public int getPriority() {
-        return (getElement(0) >> 4);
+        return (getElement(0) >> 1);
     }
 
     public int getCommand() {
