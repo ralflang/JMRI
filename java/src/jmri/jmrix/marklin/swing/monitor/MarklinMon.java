@@ -11,6 +11,8 @@ public class MarklinMon {
     public static String displayReply(MarklinReply r) {
 
         StringBuffer sb = new StringBuffer();
+        sb.append(r.toString() + "\n");
+
         sb.append("Priority ");
         switch (r.getPriority()) {
             case MarklinConstants.PRIO_1:
@@ -106,11 +108,6 @@ public class MarklinMon {
         } else if (addr >= MarklinConstants.DCCSTART && addr <= MarklinConstants.DCCEND) {
             addr = addr - MarklinConstants.DCCSTART;
             sb.append(" to DCC Address " + addr);
-        }
-        //StringBuffer buf = new StringBuffer();
-        sb.append("0x" + Integer.toHexString(r.getCanData()[0]));
-        for (int i = 1; i < r.getCanData().length; i++) {
-            sb.append(", 0x" + Integer.toHexString(r.getCanData()[i]));
         }
 
         return sb.toString();
