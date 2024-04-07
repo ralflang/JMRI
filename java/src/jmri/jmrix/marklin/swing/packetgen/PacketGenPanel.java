@@ -119,10 +119,10 @@ public class PacketGenPanel extends jmri.jmrix.marklin.swing.MarklinPanel implem
         memo.getTrafficController().addMarklinListener(this);
     }
     public void handleKillTrackPowerButton(java.awt.event.ActionEvent e) {
-        memo.getTrafficController().sendMarklinMessage(MarklinMessage.getEnableMain(), this);
+        memo.getTrafficController().sendMarklinMessage(MarklinMessage.getKillMain(), this);
     }
     public void handleEnableTrackPowerButton(java.awt.event.ActionEvent e) {
-        memo.getTrafficController().sendMarklinMessage(MarklinMessage.getKillMain(), this);
+        memo.getTrafficController().sendMarklinMessage(MarklinMessage.getEnableMain(), this);
     }
 
     public void sendButtonActionPerformed(java.awt.event.ActionEvent e) {

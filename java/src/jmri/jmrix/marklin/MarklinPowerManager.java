@@ -68,8 +68,8 @@ public class MarklinPowerManager extends AbstractPowerManager<MarklinSystemConne
             switch (m.getElement(9)) {
                 case MarklinConstants.CMDGOSYS:
                     power = ON;
-                    break;
                     log.debug("Received a CMDGOSYS (Power On) command");
+                    break;
                 case MarklinConstants.CMDSTOPSYS:
                     log.debug("Received a CMDSTOPSYS (Power On) command");
                 case MarklinConstants.CMDHALTSYS:
