@@ -1,13 +1,16 @@
 package jmri.jmrix.marklin;
 
 /**
- * Carries the reply to an MarklinMessage.
+ * A MarklinMessage received from the connection.
+ * This might be a CAN command or a CAN reply.
+ * In both cases it can be unrelated to anything JMRI did.
+ * Alien content must not disturb normal operation.
  *
  * @author Bob Jacobsen Copyright (C) 2001, 2008
  * @author Kevin Dickerson Copyright (C) 2007
  *
  */
-public class MarklinReply extends jmri.jmrix.AbstractMRReply {
+public class MarklinReply extends jmri.jmrix.AbstractMRReply implements MCanMessage {
 
     // create a new one
     public MarklinReply() {

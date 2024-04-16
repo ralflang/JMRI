@@ -21,7 +21,9 @@ public class CdBConnectionTypeList implements jmri.jmrix.ConnectionTypeList {
     public String[] getAvailableProtocolClasses() {
         // replace existing LocoNet protocol list with just our three
         String[] tempList = new String[]{
-            "jmri.jmrix.marklin.cdb.serialdriver.ConnectionConfig"}; // NOI18N
+                "jmri.jmrix.marklin.cdb.serialdriver.ConnectionConfig",
+                "jmri.jmrix.marklin.cdb.simulation.ConnectionConfig",
+        }; // NOI18N
         return tempList;
     }
 
