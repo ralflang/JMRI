@@ -10,7 +10,7 @@ package jmri.jmrix.marklin;
  * @author Kevin Dickerson Copyright (C) 2007
  *
  */
-public class MarklinReply extends jmri.jmrix.AbstractMRReply implements MCanMessage {
+public class MarklinReply extends jmri.jmrix.AbstractMRReply {
 
     // create a new one
     public MarklinReply() {
