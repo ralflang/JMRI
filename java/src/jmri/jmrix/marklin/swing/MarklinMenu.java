@@ -42,8 +42,10 @@ public class MarklinMenu extends JMenu {
     }
 
     Item[] panelItems = new Item[]{
-        new Item("MenuItemMarklinMonitor", "jmri.jmrix.marklin.swing.monitor.MarklinMonPane"),
-        new Item("MenuItemSendPacket", "jmri.jmrix.marklin.swing.packetgen.PacketGenPanel"),};
+            new Item("MenuItemMarklinMonitor", "jmri.jmrix.marklin.swing.monitor.MarklinMonPane"),
+            new Item("MenuItemSendPacket", "jmri.jmrix.marklin.swing.packetgen.PacketGenPanel"),
+            new Item("MenuItemDetectDevices", "jmri.jmrix.marklin.swing.detect.MarklinDetectorPane"),
+    };
 
     static class Item {
 

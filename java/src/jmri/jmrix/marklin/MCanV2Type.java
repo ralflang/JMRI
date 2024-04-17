@@ -1,14 +1,20 @@
 package jmri.jmrix.marklin;
 
-public class MCanAlienMessage implements MCanMessage {
+/**
+ * MCanV2Type contains helpers to read or create the internal structure of a MS2/CS2/TrackBox native message
+ * Anything that can be expected of a more generic CAN message should be relegated to MCanMessage or a base class derived from it
+ *
+ */
+public abstract class MCanV2Type implements MCanMessage{
+
     int[] message;
 
-    MCanAlienMessage(int[] message)
+    MCanV2Type (int[] message)
     {
         this.message = message;
     }
 
-    @Override
+
     public int[] toIntField() {
         return this.message.clone();
     }
