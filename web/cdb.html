@@ -1,113 +1,166 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="UTF-8" />
-        <title>Can-Digital-Bahn Device Detection</title>
-        <style>
-            html {background-color:#eeeeee}
-            body {
-                background-color:#ccffcc;
-                font-family:Tahoma,Arial,Helvetica,sans-serif;
-                font-size:12px;
-                margin-left:15%;
-                margin-right:15%;
-                border:3px groove #006600;
-                padding:15px
-            }
-            h1   {
-                text-align:left;
-                font-size:1.5em;
-                font-weight:bold
-            }
-        </style>
-        <!-- include the jquery.jmri library and its dependencies -->
-        <script src="/js/jquery-2.2.4.min.js"></script>
-        <script src="/js/json2.js"></script>
-        <script src="/js/jquery.websocket.js"></script>
-        <script src="/js/logger.js"></script>
-        <script src="/js/jquery.jmri.js"></script>
-        <script type="text/javascript">
-            var jmri = null;
+<head>
+  <meta charset="UTF-8"/>
+  <title>Can-Digital-Bahn Device Detection</title>
+  <style>
+    html {background-color:#eeeeee}
+    body {
+        background-color:#ccffcc;
+        font-family:Tahoma,Arial,Helvetica,sans-serif;
+        font-size:12px;
+        margin-left:15%;
+        margin-right:15%;
+        border:3px groove #006600;
+        padding:15px
+    }
+    h1   {
+        text-align:left;
+        font-size:1.5em;
+        font-weight:bold
+    }
+  </style>
+  <!-- include the jquery.jmri library and its dependencies -->
+  <script src="/js/jquery-2.2.4.min.js"></script>
+  <script src="/js/json2.js"></script>
+  <script src="/js/jquery.websocket.js"></script>
+  <script src="/js/logger.js"></script>
+  <script src="/js/jquery.jmri.js"></script>
+  <script type="text/javascript">
+    var jmri = null;
 
-            //append a new row to the table, or replace an existing row, based on name
-            function setRow(name, data){
-              var tbody = $("table#memories tbody").html(); //get current table body
-              var tds = "<td>" + data.name + "</td><td>" + data.userName + "</td><td>" //build cells
-                  + data.value + "</td><td>" + data.comment + "</td>";  
-              var tr = "<tr data-name='" + data.name + "'>" + tds + "</tr>"; //build row with key
-              var row = $("table#memories tr[data-name='" + name + "']"); //look for row by key
-              if ($(row).length) {
-                  row.html(tds); //if found, replace cells
-              } else {
-                  $("table#memories tbody").html(tbody + tr); //if not found, append row to table body
-              }
-            };
+    //append a new row to the table, or replace an existing row, based on name
+    function setRow(name, data){
+      var tbody = $("table#memories tbody").html(); //get current table body
+      var tds = "<td>" + data.name + "</td><td>" + data.userName + "</td><td>" //build cells
+          + data.value + "</td><td>" + data.comment + "</td>";
+      var tr = "<tr data-name='" + data.name + "'>" + tds + "</tr>"; //build row with key
+      var row = $("table#memories tr[data-name='" + name + "']"); //look for row by key
+      if ($(row).length) {
+          row.html(tds); //if found, replace cells
+      } else {
+          $("table#memories tbody").html(tbody + tr); //if not found, append row to table body
+      }
+    };
 
-            $(document).ready(function () {
-                // once the document is loaded, assign a $.JMRI object to
-                // the jmri variable and overload the function turnout(name, state, data)
-                jmri = $.JMRI({
-                    // when the JMRI websocket has completed initialization, call this
-                    hello: function (data) {
-                        jmri.log("in hello: data=" + JSON.stringify(data).substr(0, 180) + "...");
-                        jmri.getList("memories");
-                    },
-                    // when the JMRI object receives an array of memories, call this
-                    memories: function (data) {
-                        jmri.log("in memories: data=" + JSON.stringify(data).substr(0, 180) + "...");
-                        data.forEach(el => {
-                            jmri.log("Requesting update listener for " + el.type +" '" + el.data.name +"'");
-                            jmri.getObject(el.type, el.data.name);
-                        });
-                        //empty the body of the table                        
-                        $("table#memories tbody").html(""); 
-                    },
-                    // when the JMRI object receives a memory update, call this
-                    memory: function (name, state, data) {
-                        jmri.log("in memory: name='" + name + "', state='" + state + "', data=" 
-                            + JSON.stringify(data).substr(0, 180) + "...");
-                        setRow(name, data); // add or update the row
-                    },
-                    // all messages call console(), so use it for debugging
-                    console: function (originalData) {
-                        var data = JSON.parse(originalData);
-                        jmri.log("in console: data=" + JSON.stringify(data).substr(0, 180) + "...");
-                    }                    
+    function setSystemConnectionRow(name, data){
+      var tbody = $("table#systemConnections tbody").html(); //get current table body
+      //build cells
+      var tds = "<td>" + data.name + "</td><td>" + data.prefix + "</td>";
+      tds += "<td>" + data.mfg + "</td><td>" + data.description + "</td>";
+      tds += "<td>" + (data.mfg == "CAN-digital-Bahn" ? "<button>Detect Gear</button>" : "n/a") + "</td>";
+      var tr = "<tr data-name='" + data.name + "'>" + tds + "</tr>"; //build row with key
+      var row = $("table#systemConnections tr[data-name='" + name + "']"); //look for row by key
+      if ($(row).length) {
+          row.html(tds); //if found, replace cells
+      } else {
+          $("table#systemConnections tbody").html(tbody + tr); //if not found, append row to table body
+      }
+    };
+
+
+
+    $(document).ready(function () {
+        // once the document is loaded, assign a $.JMRI object to
+        // the jmri variable and overload the function turnout(name, state, data)
+        jmri = $.JMRI({
+            // when the JMRI websocket has completed initialization, call this
+            hello: function (data) {
+                jmri.log("in hello: data=" + JSON.stringify(data).substr(0, 180) + "...");
+                jmri.getList("memories");
+                jmri.getList("systemConnections");
+            },
+            // when the JMRI object receives an array of memories, call this
+            memories: function (data) {
+                // jmri.log("in memories: data=" + JSON.stringify(data).substr(0, 180) + "...");
+                data.forEach(el => {
+                    jmri.log("Requesting update listener for " + el.type +" '" + el.data.name +"'");
+                    jmri.getObject(el.type, el.data.name);
                 });
-                
-                // trigger the initial connection to the JMRI server
-                jmri.connect();
-                
-            });
-        </script>
+                //empty the body of the table
+                $("table#memories tbody").html("");
+            },
+            // when the JMRI object receives a memory update, call this
+            memory: function (name, state, data) {
+                // jmri.log("in memory: name='" + name + "', state='" + state + "', data="
+                //    + JSON.stringify(data).substr(0, 180) + "...");
+                setRow(name, data); // add or update the row
+            },
+            // Catch system connections
+            systemConnections: function (data) {
+                jmri.log("in connections: data=" + JSON.stringify(data).substr(0, 180) + "...");
+                data.forEach(el => {
+                    jmri.log("Requesting update listener for " + el.type +" '" + el.data.name +"'");
+                    jmri.getObject(el.type, el.data.name);
+                });
+                //empty the body of the table
+                $("table#systemConnections tbody").html("");
+            },
+            // when the JMRI object receives a memory update, call this
+            systemConnection: function (name, data) {
+                jmri.log("in systemConnection: name='" + name + "', data="
+                    + JSON.stringify(data).substr(0, 180) + "...");
+                setSystemConnectionRow(name, data); // add or update the row
+            },
 
-    </head>
-    <body>
-        <h1>Can-Digital-Bahn Device Detection</h1>
-        <hr />
 
-        <div class="container">
-            <table id="memories" class="table-striped table-hover table-responsive">
-                <thead>
-                    <tr>
-                        <th>System Name</th><th>User Name</th><th>Value</th><th>Comment</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <td>S</td><td>U</td><td>V</td><td>C</td> <!-- this will be cleared and replaced -->
-                </tbody>
-            </table>
-            <table id="memories" class="table-striped table-hover table-responsive">
-              <thead>
-              <tr>
-                <th>System Name</th><th>User Name</th><th>Value</th><th>Comment</th>
-              </tr>
-              </thead>
-              <tbody>
-              <td>S</td><td>U</td><td>V</td><td>C</td> <!-- this will be cleared and replaced -->
-              </tbody>
-            </table>
-        </div><!-- /container -->
-        
-    </body>
+            // all messages call console(), so use it for debugging
+            console: function (originalData) {
+                var data = JSON.parse(originalData);
+                jmri.log("in console: data=" + JSON.stringify(data).substr(0, 180) + "...");
+            }
+        });
+
+        // trigger the initial connection to the JMRI server
+        jmri.connect();
+
+    });
+  </script>
+
+</head>
+<body>
+<h1>Can-Digital-Bahn Device Detection</h1>
+<hr/>
+<h2>Memories Connections</h2>
+
+<div class="container">
+  <table id="memories" class="table-striped table-hover table-responsive">
+    <thead>
+    <tr>
+      <th>System Name</th>
+      <th>User Name</th>
+      <th>Value</th>
+      <th>Comment</th>
+    </tr>
+    </thead>
+    <tbody>
+    <td>S</td>
+    <td>U</td>
+    <td>V</td>
+    <td>C</td> <!-- this will be cleared and replaced -->
+    </tbody>
+  </table>
+  <hr/>
+  <h2>System Connections</h2>
+
+  <table id="systemConnections" class="table-striped table-hover table-responsive">
+    <thead>
+    <tr>
+      <th>System Name</th>
+      <th>Prefix</th>
+      <th>Mfg</th>
+      <th>Description</th>
+      <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    <td>S</td>
+    <td>U</td>
+    <td>V</td>
+    <td>C</td> <!-- this will be cleared and replaced -->
+    </tbody>
+  </table>
+</div><!-- /container -->
+
+</body>
 </html>
