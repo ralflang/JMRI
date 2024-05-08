@@ -43,19 +43,24 @@
       }
     };
 
-    function setSystemConnectionRow(name, data){
-      var tbody = $("table#systemConnections tbody").html(); //get current table body
-      //build cells
-      var tds = "<td>" + data.name + "</td><td>" + data.prefix + "</td>";
-      tds += "<td>" + data.mfg + "</td><td>" + data.description + "</td>";
-      tds += "<td>" + (data.mfg == "CAN-digital-Bahn" ? "<button>Detect Gear</button>" : "n/a") + "</td>";
-      var tr = "<tr data-name='" + data.name + "'>" + tds + "</tr>"; //build row with key
-      var row = $("table#systemConnections tr[data-name='" + name + "']"); //look for row by key
-      if ($(row).length) {
-          row.html(tds); //if found, replace cells
-      } else {
-          $("table#systemConnections tbody").html(tbody + tr); //if not found, append row to table body
+    /**
+     * List system connections relevant to CdB
+     */
+    function setSystemConnectionOptions(name, data){
+      let relevantVendors = ["CAN-digital-Bahn", "Marklin"];
+      // Don't list irrelevant connections
+      if (!relevantVendors.includes(data.mfg)) {
+          return;
       }
+      let selectElt = document.getElementById('system_connection_selection');
+      // Check if we already have such an option that can be replaced
+      let optionElt = document.querySelector("select#system_connection_selection option[value=" + data.name + "]");
+      if (optionElt == null) {
+          optionElt = document.createElement("option");
+          selectElt.appendChild(optionElt);
+      }
+      optionElt.textContent = data.name + ": " + data.prefix + ": " + data.description;
+      optionElt.value = data.name;
     };
 
 
@@ -72,9 +77,7 @@
             },
             // when the JMRI object receives an array of memories, call this
             memories: function (data) {
-                // jmri.log("in memories: data=" + JSON.stringify(data).substr(0, 180) + "...");
                 data.forEach(el => {
-                    jmri.log("Requesting update listener for " + el.type +" '" + el.data.name +"'");
                     jmri.getObject(el.type, el.data.name);
                 });
                 //empty the body of the table
@@ -82,8 +85,6 @@
             },
             // when the JMRI object receives a memory update, call this
             memory: function (name, state, data) {
-                // jmri.log("in memory: name='" + name + "', state='" + state + "', data="
-                //    + JSON.stringify(data).substr(0, 180) + "...");
                 setRow(name, data); // add or update the row
             },
             // Catch system connections
@@ -100,7 +101,7 @@
             systemConnection: function (name, data) {
                 jmri.log("in systemConnection: name='" + name + "', data="
                     + JSON.stringify(data).substr(0, 180) + "...");
-                setSystemConnectionRow(name, data); // add or update the row
+                setSystemConnectionOptions(name, data); // add or update the row
             },
 
 
@@ -114,6 +115,22 @@
         // trigger the initial connection to the JMRI server
         jmri.connect();
 
+        // Register handler for scan button
+        let scanButtonElt = document.getElementById("scan_cdb_components");
+        let connectionSelectElt = document.getElementById("system_connection_selection");
+        scanButtonElt.onclick = function(e) {
+            jmri.log("Requested scanning CAN bus for " + connectionSelectElt.value);
+        };
+
+        // Register handler for selecting a connection
+        scanButtonElt.disabled = true;
+        connectionSelectElt.onchange = function() {
+          if (connectionSelectElt.value == "none") {
+              scanButtonElt.disabled = true;
+          } else {
+              scanButtonElt.disabled = false;
+          }
+        };
     });
   </script>
 
@@ -142,24 +159,11 @@
   </table>
   <hr/>
   <h2>System Connections</h2>
-
-  <table id="systemConnections" class="table-striped table-hover table-responsive">
-    <thead>
-    <tr>
-      <th>System Name</th>
-      <th>Prefix</th>
-      <th>Mfg</th>
-      <th>Description</th>
-      <th>Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    <td>S</td>
-    <td>U</td>
-    <td>V</td>
-    <td>C</td> <!-- this will be cleared and replaced -->
-    </tbody>
-  </table>
+  Select a connection:
+  <select id="system_connection_selection">
+    <option value="none">Select a CdB or Marklin system connection:</option>
+  </select>
+  <button id="scan_cdb_components">Scan for components</button>
 </div><!-- /container -->
 
 </body>
