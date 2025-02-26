@@ -7,8 +7,6 @@ import jmri.jmrix.can.CanSystemConnectionMemo;
 import org.openlcb.*;
 import org.openlcb.implementations.LocationServiceUtils;
 
-import javax.annotation.Nonnull;
-
 /**
  * Central functions for OlcbMeters.
  *
@@ -32,12 +30,16 @@ public class OlcbMeterManager extends jmri.managers.AbstractMeterManager {
      * 
      * @param memo the system connection
      */
-    public OlcbMeterManager(@Nonnull CanSystemConnectionMemo memo) {
+    public OlcbMeterManager(CanSystemConnectionMemo memo) {
         super(memo);
         this.memo = memo;
-        this.iface = memo.get(OlcbInterface.class);
+        if (memo != null) { // greatly simplify testing
+            this.iface = memo.get(OlcbInterface.class);
+        } else {
+            this.iface = null;
+        }
         iface.registerMessageListener(new EWPListener());
-        this.store = memo.get(MimicNodeStore.class);
+        store = memo.get(MimicNodeStore.class);
     }
 
     private final OlcbInterface iface;
@@ -54,24 +56,22 @@ public class OlcbMeterManager extends jmri.managers.AbstractMeterManager {
             // process the blocks looking for an analog block
             int ordinal = 1;
             var scannedNode = content.getScannedDevice();
-            String scannedName ="";
-            if (store != null) scannedName = store.findNode(scannedNode).getSimpleNodeIdent().getUserName();
-            log.debug("Retrieved scannedNode {} scannedName {}", scannedNode, scannedName);
+            String scannedName = store.findNode(scannedNode).getSimpleNodeIdent().getUserName();
+            log.info("Retrieved scannedNode {} scannedName {}", scannedNode, scannedName);
             if (scannedName == null || scannedName.isEmpty()) scannedName = scannedNode.toString();
             
             for (LocationServiceUtils.Block block : content.getBlocks()) {
                 log.debug("  Block of type {}", block.getType());
-                if (block instanceof LocationServiceUtils.AnalogBlock ) {
+                if (block.getType() == LocationServiceUtils.Block.Type.ANALOG) {
                     var analog = (LocationServiceUtils.AnalogBlock) block;
                     // analog block: find an existing meter or make a new one
                     var text = analog.getText();
                     var unit = analog.getUnit();
                     
                     var systemLetter = memo.getSystemPrefix();
-                    var sysName  = systemLetter+typeLetter()+" "+scannedNode.toString()+" "+ordinal+" "+text;
-                    var userName = scannedName+" "+ordinal+" "+text;
+                    var sysName = systemLetter+typeLetter()+" "+scannedName+" "+ordinal+" "+text;
                     
-                    log.debug("  Unit: {}, Text: '{}'  systemName: '{}'", unit, text, sysName);
+                    log.info("  Unit: {}, Text: '{}'  systemName: '{}'", unit, text, sysName);
                     
                     var meter = getBySystemName(sysName);
                                         
@@ -81,9 +81,11 @@ public class OlcbMeterManager extends jmri.managers.AbstractMeterManager {
                         log.debug("Creating new meter '{}' of type '{}'",
                                 text, unit);
                         if (unit == LocationServiceUtils.AnalogBlock.Unit.VOLTS) {
-                            meter = createVoltageMeter(sysName);
+                            meter = new DefaultMeter.DefaultVoltageMeter(
+                                    sysName, Meter.Unit.NoPrefix, 0., 50., 0.001, null); // no updateTask
                         } else if (unit == LocationServiceUtils.AnalogBlock.Unit.AMPERES) {
-                            meter = createCurrentMeter(sysName);
+                            meter = new DefaultMeter.DefaultCurrentMeter(
+                                    sysName, Meter.Unit.NoPrefix, 0., 50., 0.001, null); // no updateTask
                         } else {
                             log.warn("Meters of type {} are not supported yet", unit);
                             continue;
@@ -91,10 +93,6 @@ public class OlcbMeterManager extends jmri.managers.AbstractMeterManager {
                         //store meter by incoming name for lookup later
                         InstanceManager.getDefault(MeterManager.class).register(meter);
                     }
-                    
-                    // set the user name to keep it updated
-                    meter.setUserName(userName);
-                    
                     // meter exists here - give it a value
                     ((AbstractAnalogIO)meter).setValue(analog.getValue());
                     
@@ -105,20 +103,6 @@ public class OlcbMeterManager extends jmri.managers.AbstractMeterManager {
         }
     }
 
-    public static Meter createVoltageMeter(String sysName) {
-        var meter = new DefaultMeter.DefaultVoltageMeter(
-                           sysName, Meter.Unit.NoPrefix, 0., 50., 0.001, null); // no updateTask
-        InstanceManager.getDefault(MeterManager.class).register(meter);
-        return meter;
-    }
-    
-    public static Meter createCurrentMeter(String sysName) {
-        var meter = new DefaultMeter.DefaultCurrentMeter(
-                           sysName, Meter.Unit.NoPrefix, 0., 50., 0.001, null); // no updateTask
-        InstanceManager.getDefault(MeterManager.class).register(meter);
-        return meter;
-    }
-    
     private final static org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OlcbMeterManager.class);
     
 }
