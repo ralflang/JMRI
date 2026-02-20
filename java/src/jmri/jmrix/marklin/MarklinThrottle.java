@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
  * An implementation of DccThrottle with code specific to an TAMS connection.
  * <p>
  * Based on Glen Oberhauser's original LnThrottle implementation
+ * <p>
+ * Now leverages {@link MarklinCanCodec} for message decoding.
  *
  * @author Kevin Dickerson Copyright (C) 2012
  */
@@ -208,20 +210,31 @@ public class MarklinThrottle extends AbstractThrottle implements MarklinListener
 
     @Override
     public void reply(MarklinReply m) {
-        if (m.getPriority() == MarklinConstants.PRIO_1 && m.getCommand() >= MarklinConstants.MANCOMMANDSTART && m.getCommand() <= MarklinConstants.MANCOMMANDEND) {
-            if (m.getAddress() != getCANAddress()) {
+        // Decode the message using the codec
+        int[] rawData = new int[13];
+        for (int i = 0; i < 13; i++) {
+            rawData[i] = m.getElement(i);
+        }
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(rawData);
+
+        if (decoded.getPriority() == MarklinConstants.PRIO_1
+            && decoded.getCommand() >= MarklinConstants.MANCOMMANDSTART
+            && decoded.getCommand() <= MarklinConstants.MANCOMMANDEND) {
+
+            if (decoded.getAddress() != getCANAddress()) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Addressed packet is not for us {} {}", m.getAddress(), getCANAddress());
+                    log.debug("Addressed packet is not for us {} {}", decoded.getAddress(), getCANAddress());
                 }
                 return;
             }
-            if (m.getCommand() == MarklinConstants.LOCODIRECTION) {
+
+            if (decoded.getCommand() == MarklinConstants.LOCODIRECTION) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Loco Direction {}", m.getElement(9));
+                    log.debug("Loco Direction {}", decoded.getDataByte(0));
                 }
                 //The CS2 sets the speed of the loco to Zero when changing direction, however it doesn't appear to broadcast it out.
                 synchronized(this) {
-                    switch (m.getElement(9)) {
+                    switch (decoded.getDataByte(0)) {
                         case 0x00:
                             return; //No change
                         case 0x01:
@@ -247,20 +260,19 @@ public class MarklinThrottle extends AbstractThrottle implements MarklinListener
                             firePropertyChange(ISFORWARD, !isForward, isForward);
                             return;
                         default:
-                            log.error("No Match Found for loco direction {}", m.getElement(9));
+                            log.error("No Match Found for loco direction {}", decoded.getDataByte(0));
                             return;
                     }
                 }
             }
-            if (m.getCommand() == MarklinConstants.LOCOSPEED) {
-                int speed = m.getElement(9);
-                speed = (speed << 8) + (m.getElement(10));
+            if (decoded.getCommand() == MarklinConstants.LOCOSPEED) {
+                int speed = (decoded.getDataByte(0) << 8) + decoded.getDataByte(1);
                 float newSpeed = floatSpeed(speed);
                 log.debug("Speed raw {} float {}", speed, newSpeed);
                 super.setSpeedSetting(newSpeed);
             }
-            if (m.getCommand() == MarklinConstants.LOCOFUNCTION) {
-                updateFunction(m.getElement(9),!(m.getElement(10)==0));
+            if (decoded.getCommand() == MarklinConstants.LOCOFUNCTION) {
+                updateFunction(decoded.getDataByte(0), !(decoded.getDataByte(1) == 0));
             }
         }
     }
