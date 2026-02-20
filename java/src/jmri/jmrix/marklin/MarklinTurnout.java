@@ -11,6 +11,8 @@ import jmri.implementation.AbstractTurnout;
  * than one Turnout object pointing to a single device is not allowed.
  * <p>
  * Based on work by Bob Jacobsen
+ * <p>
+ * Now leverages {@link MarklinCanCodec} for message decoding.
  *
  * @author Kevin Dickerson Copyright (C) 2012
  *
@@ -153,20 +155,29 @@ public class MarklinTurnout extends AbstractTurnout implements MarklinListener {
     // to listen for status changes from Marklin system
     @Override
     public void reply(MarklinReply m) {
-        if (m.getPriority() == MarklinConstants.PRIO_1 && m.getCommand() >= MarklinConstants.ACCCOMMANDSTART
-            && m.getCommand() <= MarklinConstants.ACCCOMMANDEND) {
+        // Decode the message using the codec
+        int[] rawData = new int[13];
+        for (int i = 0; i < 13; i++) {
+            rawData[i] = m.getElement(i);
+        }
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(rawData);
+
+        if (decoded.getPriority() == MarklinConstants.PRIO_1
+            && decoded.getCommand() >= MarklinConstants.ACCCOMMANDSTART
+            && decoded.getCommand() <= MarklinConstants.ACCCOMMANDEND) {
+
             if (protocol == PROTOCOL_UNKNOWN) {
-                if (m.getAddress() == _number + MarklinConstants.MM1ACCSTART - 1) {
+                if (decoded.getAddress() == _number + MarklinConstants.MM1ACCSTART - 1) {
                     protocol = MM2;
-                } else if (m.getAddress() == _number + MarklinConstants.DCCACCSTART - 1) {
+                } else if (decoded.getAddress() == _number + MarklinConstants.DCCACCSTART - 1) {
                     protocol = DCC;
                 } else {
                     //Message is not for us.
                     return;
                 }
             }
-            if (m.getAddress() == getCANAddress()) {
-                switch (m.getElement(9)) {
+            if (decoded.getAddress() == getCANAddress()) {
+                switch (decoded.getDataByte(0)) {
                     case 0x00:
                         setKnownStateFromCS(Turnout.THROWN);
                         break;
@@ -174,7 +185,7 @@ public class MarklinTurnout extends AbstractTurnout implements MarklinListener {
                         setKnownStateFromCS(Turnout.CLOSED);
                         break;
                     default:
-                        log.warn("Unknown state command {}", m.getElement(9));
+                        log.warn("Unknown state command {}", decoded.getDataByte(0));
                 }
             }
         }
