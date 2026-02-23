@@ -177,7 +177,7 @@ public class MarklinCanCodec {
             message[3] = hashByte2 & 0xFF;
 
             // Data length code
-            message[4] = (dataLength + 4) & 0xFF; // DLC includes 4 address bytes
+            message[4] = dataLength & 0xFF; // DLC is number of data bytes (0-8), NOT including 4 address bytes
 
             // Address bytes (big-endian)
             message[5] = (int) ((address >> 24) & 0xFF);
@@ -219,11 +219,8 @@ public class MarklinCanCodec {
         // Hash bytes
         int[] hash = new int[]{rawMessage[2] & 0xFF, rawMessage[3] & 0xFF};
 
-        // Data length code (minus 4 address bytes)
-        int dataLength = (rawMessage[4] & 0xFF) - 4;
-        if (dataLength < 0) {
-            dataLength = 0;
-        }
+        // Data length code (number of data bytes, 0-8)
+        int dataLength = rawMessage[4] & 0xFF;
         if (dataLength > 8) {
             dataLength = 8;
         }
@@ -232,7 +229,7 @@ public class MarklinCanCodec {
         long address = ((long) (rawMessage[5] & 0xFF) << 24)
                      | ((long) (rawMessage[6] & 0xFF) << 16)
                      | ((long) (rawMessage[7] & 0xFF) << 8)
-                     | ((long) (rawMessage[8] & 0xFF));
+                     | (rawMessage[8] & 0xFF);
 
         // Extract data bytes
         int[] data = new int[dataLength];

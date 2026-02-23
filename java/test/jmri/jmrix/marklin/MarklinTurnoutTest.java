@@ -43,6 +43,7 @@ public class MarklinTurnoutTest extends jmri.implementation.AbstractTurnoutTestB
 
         t.setCommandedState(Turnout.CLOSED);
         MarklinReply r = new MarklinReply();
+        r.setElement(0, MarklinConstants.PRIO_1 << 4); // Set PRIO_1 in bits 7-4
         r.setCommand(MarklinConstants.ACCCOMMANDSTART);
         ((MarklinTurnout)t).reply(r); // nothing happens, unknown address
 
@@ -63,6 +64,7 @@ public class MarklinTurnoutTest extends jmri.implementation.AbstractTurnoutTestB
 
         t.setCommandedState(Turnout.CLOSED);
         MarklinReply r = new MarklinReply();
+        r.setElement(0, MarklinConstants.PRIO_1 << 4); // Set PRIO_1 in bits 7-4
         r.setCommand(MarklinConstants.ACCCOMMANDSTART);
         ((MarklinTurnout)t).reply(r); // nothing happens, unknown address
 
