@@ -26,17 +26,22 @@ public class MarklinMessageFormatter {
     }
 
     /**
-     * Format a decoded MCAN message in MarklinMon style.
+     * Format a decoded MCAN message in MarklinMon style with optional device identification.
      * <p>
-     * Output format: [Priority] Command: [details] [Request/Response] [Address] [Hex bytes]
+     * Output format: [Device] [Priority] Command: [details] [Request/Response] [Address] [Hex bytes]
      *
      * @param decoded the decoded MCAN message
      * @param rawData raw 13-byte message data for hex display
      * @param i18n optional i18n provider (null for English-only)
+     * @param includeDeviceInfo if true, prepend device identification from hash/PING
      * @return formatted message string
      */
-    public static String format(MarklinCanCodec.DecodedMessage decoded, int[] rawData, I18nProvider i18n) {
+    public static String format(MarklinCanCodec.DecodedMessage decoded, int[] rawData, I18nProvider i18n, boolean includeDeviceInfo) {
         StringBuilder sb = new StringBuilder();
+
+        if (includeDeviceInfo) {
+            appendDeviceInfo(decoded, sb);
+        }
 
         appendPriority(decoded, sb);
         appendCommand(decoded, sb, i18n);
@@ -48,6 +53,33 @@ public class MarklinMessageFormatter {
     }
 
     /**
+     * Format a decoded MCAN message in MarklinMon style.
+     * <p>
+     * Output format: [Priority] Command: [details] [Request/Response] [Address] [Hex bytes]
+     *
+     * @param decoded the decoded MCAN message
+     * @param rawData raw 13-byte message data for hex display
+     * @param i18n optional i18n provider (null for English-only)
+     * @return formatted message string
+     */
+    public static String format(MarklinCanCodec.DecodedMessage decoded, int[] rawData, I18nProvider i18n) {
+        return format(decoded, rawData, i18n, false);
+    }
+
+    /**
+     * Format from raw bytes with optional device identification.
+     *
+     * @param rawData 13-byte MCAN message
+     * @param i18n optional i18n provider (null for English-only)
+     * @param includeDeviceInfo if true, prepend device identification
+     * @return formatted message string
+     */
+    public static String formatRaw(int[] rawData, I18nProvider i18n, boolean includeDeviceInfo) {
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(rawData);
+        return format(decoded, rawData, i18n, includeDeviceInfo);
+    }
+
+    /**
      * Format from raw bytes (convenience method).
      *
      * @param rawData 13-byte MCAN message
@@ -55,8 +87,21 @@ public class MarklinMessageFormatter {
      * @return formatted message string
      */
     public static String formatRaw(int[] rawData, I18nProvider i18n) {
-        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(rawData);
-        return format(decoded, rawData, i18n);
+        return formatRaw(rawData, i18n, false);
+    }
+
+    private static void appendDeviceInfo(MarklinCanCodec.DecodedMessage decoded, StringBuilder sb) {
+        // Try to extract device info from PING response first (most detailed)
+        MarklinDeviceIdentifier.DeviceInfo deviceInfo = MarklinDeviceIdentifier.fromPingResponse(decoded);
+
+        if (deviceInfo == null) {
+            // Fall back to hash-based identification for regular traffic
+            deviceInfo = MarklinDeviceIdentifier.fromHash(decoded);
+        }
+
+        if (deviceInfo != null) {
+            sb.append(MarklinDeviceIdentifier.formatCompact(deviceInfo)).append(" ");
+        }
     }
 
     private static void appendPriority(MarklinCanCodec.DecodedMessage decoded, StringBuilder sb) {

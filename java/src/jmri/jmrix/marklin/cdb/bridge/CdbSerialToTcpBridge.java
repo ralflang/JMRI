@@ -1,6 +1,7 @@
 package jmri.jmrix.marklin.cdb.bridge;
 
 import com.fazecast.jSerialComm.SerialPort;
+import jmri.jmrix.marklin.MarklinCanCodec;
 import jmri.jmrix.marklin.MarklinMessageFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -652,13 +653,13 @@ public class CdbSerialToTcpBridge {
                 return;
             }
 
-            // Monitor mode: log TCP → Serial
+            // Monitor mode: log TCP → Serial with device identification
             if (monitorMode && length >= 13) {
                 int[] rawData = new int[13];
                 for (int i = 0; i < 13; i++) {
                     rawData[i] = data[i] & 0xFF;
                 }
-                String message = MarklinMessageFormatter.formatRaw(rawData, null);
+                String message = MarklinMessageFormatter.formatRaw(rawData, null, true);
                 System.out.println(String.format("[%s] [TCP→Serial] %s", serialPortName, message));
             }
 
@@ -690,13 +691,13 @@ public class CdbSerialToTcpBridge {
         }
 
         void broadcastToClients(byte[] data, int length) {
-            // Monitor mode: log Serial → TCP
+            // Monitor mode: log Serial → TCP with device identification
             if (monitorMode && length >= 13) {
                 int[] rawData = new int[13];
                 for (int i = 0; i < 13; i++) {
                     rawData[i] = data[i] & 0xFF;
                 }
-                String message = MarklinMessageFormatter.formatRaw(rawData, null);
+                String message = MarklinMessageFormatter.formatRaw(rawData, null, true);
                 System.out.println(String.format("[%s] [Serial→TCP] %s", serialPortName, message));
             }
 

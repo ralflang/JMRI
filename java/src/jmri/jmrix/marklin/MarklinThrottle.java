@@ -211,11 +211,7 @@ public class MarklinThrottle extends AbstractThrottle implements MarklinListener
     @Override
     public void reply(MarklinReply m) {
         // Decode the message using the codec
-        int[] rawData = new int[13];
-        for (int i = 0; i < 13; i++) {
-            rawData[i] = m.getElement(i);
-        }
-        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(rawData);
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(m);
 
         if (decoded.getPriority() == MarklinConstants.PRIO_1
             && decoded.getCommand() >= MarklinConstants.MANCOMMANDSTART
