@@ -138,16 +138,6 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
             .build();
         return new MarklinMessage(encoded);
     }
-        return m;
-=======
-        int[] encoded = MarklinCanCodec.builder()
-            .setCommand(MarklinConstants.CMDCANBOOT)
-            .setAddress(0x00)
-            .setDataLength(0) // No data bytes - bootloader invocation
-            .build();
-        return new MarklinMessage(encoded);
->>>>>>> c04fd2c5a8 (feat: Marklin/CdB USB to TCP bridge)
-    }
 
     //static public MarklinMessage get
     public static MarklinMessage getSetTurnout(int addr, int state, int power) {

@@ -244,6 +244,38 @@ public class MarklinCanCodec {
     }
 
     /**
+     * Decode a MarklinReply message into its constituent parts.
+     * Convenience method that extracts the raw bytes from a MarklinReply.
+     *
+     * @param reply MarklinReply to decode
+     * @return DecodedMessage containing all protocol fields
+     * @throws IllegalArgumentException if message length is not 13 bytes
+     */
+    public static DecodedMessage decode(MarklinReply reply) {
+        int[] rawData = new int[13];
+        for (int i = 0; i < 13; i++) {
+            rawData[i] = reply.getElement(i);
+        }
+        return decode(rawData);
+    }
+
+    /**
+     * Decode a MarklinMessage into its constituent parts.
+     * Convenience method that extracts the raw bytes from a MarklinMessage.
+     *
+     * @param message MarklinMessage to decode
+     * @return DecodedMessage containing all protocol fields
+     * @throws IllegalArgumentException if message length is not 13 bytes
+     */
+    public static DecodedMessage decode(MarklinMessage message) {
+        int[] rawData = new int[13];
+        for (int i = 0; i < 13; i++) {
+            rawData[i] = message.getElement(i);
+        }
+        return decode(rawData);
+    }
+
+    /**
      * Create a new message builder.
      * @return MessageBuilder instance for fluent API construction
      */
@@ -341,7 +373,7 @@ public class MarklinCanCodec {
      * @return priority value
      */
     public static int getPriority(MarklinReply reply) {
-        return (reply.getElement(0) >> 6) & 0x03;
+        return (reply.getElement(0) >> 4) & 0x0F;
     }
 
     /**

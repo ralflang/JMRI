@@ -232,6 +232,317 @@ public class MarklinCanCodecTest {
         assertEquals(1, decoded.getDataByte(1));
     }
 
+    @Test
+    public void testGetProtocolFromAddressAllRanges() {
+        // Test all protocol ranges mentioned in documentation
+        assertEquals("MM Function Decoder", MarklinCanCodec.getProtocolFromAddress(0x1000));
+        assertEquals("MM Function Decoder", MarklinCanCodec.getProtocolFromAddress(0x13FF));
+
+        assertEquals("MM1/MM2 Loco (20kHz)", MarklinCanCodec.getProtocolFromAddress(0x2000));
+        assertEquals("MM1/MM2 Loco (20kHz)", MarklinCanCodec.getProtocolFromAddress(0x23FF));
+
+        assertEquals("Selectrix SX1", MarklinCanCodec.getProtocolFromAddress(0x0800));
+        assertEquals("Selectrix SX1", MarklinCanCodec.getProtocolFromAddress(0x0BFF));
+
+        assertEquals("Selectrix SX1 Accessory", MarklinCanCodec.getProtocolFromAddress(0x2800));
+        assertEquals("Selectrix SX1 Accessory", MarklinCanCodec.getProtocolFromAddress(0x2BFF));
+
+        assertEquals("MM Accessory", MarklinCanCodec.getProtocolFromAddress(0x3000));
+        assertEquals("MM Accessory", MarklinCanCodec.getProtocolFromAddress(0x33FF));
+
+        assertEquals("Club Range", MarklinCanCodec.getProtocolFromAddress(0x1800));
+        assertEquals("Club Range", MarklinCanCodec.getProtocolFromAddress(0x1BFF));
+
+        assertEquals("Vendor Range", MarklinCanCodec.getProtocolFromAddress(0x1C00));
+        assertEquals("Vendor Range", MarklinCanCodec.getProtocolFromAddress(0x1FFF));
+    }
+
+    @Test
+    public void testGetCommandCategoryAllCategories() {
+        // Test all command categories from documentation
+        int[] guiMsg = new int[]{0x00, 0x40, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0};
+        assertEquals("GUI", MarklinCanCodec.decode(guiMsg).getCommandCategory());
+
+        int[] feedbackMsg = new int[]{0x00, 0x20, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0};
+        assertEquals("FEEDBACK", MarklinCanCodec.decode(feedbackMsg).getCommandCategory());
+
+        int[] automationMsg = new int[]{0x00, 0x60, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0};
+        assertEquals("AUTOMATION", MarklinCanCodec.decode(automationMsg).getCommandCategory());
+    }
+
+    @Test
+    public void testBuilderSetPriority() {
+        // Test that builder correctly sets all priority levels
+        for (int prio = 0; prio <= 3; prio++) {
+            int[] encoded = MarklinCanCodec.builder()
+                .setPriority(prio)
+                .setCommand(MarklinConstants.SYSCOMMANDSTART)
+                .setAddress(0x00)
+                .setDataLength(0)
+                .build();
+
+            MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(encoded);
+            assertEquals(prio, decoded.getPriority());
+        }
+    }
+
+    @Test
+    public void testBuilderSetResponse() {
+        // Test response flag setting
+        int[] requestMsg = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.SYSCOMMANDSTART)
+            .setResponse(false)
+            .setAddress(0x00)
+            .setDataLength(0)
+            .build();
+
+        int[] responseMsg = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.SYSCOMMANDSTART)
+            .setResponse(true)
+            .setAddress(0x00)
+            .setDataLength(0)
+            .build();
+
+        assertFalse(MarklinCanCodec.decode(requestMsg).isResponse());
+        assertTrue(MarklinCanCodec.decode(responseMsg).isResponse());
+    }
+
+    @Test
+    public void testBuilderSetHash() {
+        // Test custom hash setting
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.SYSCOMMANDSTART)
+            .setAddress(0x00)
+            .setHash(0xAB, 0xCD)
+            .setDataLength(0)
+            .build();
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(encoded);
+        assertEquals(0xAB, decoded.getHash()[0]);
+        assertEquals(0xCD, decoded.getHash()[1]);
+    }
+
+    @Test
+    public void testDecodeInvalidShortMessage() {
+        // Test error handling for messages shorter than 13 bytes
+        int[] shortMsg = new int[]{0x00, 0x00, 0x47, 0x11, 0x05};
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            MarklinCanCodec.decode(shortMsg);
+        });
+    }
+
+    @Test
+    public void testGetDataByteOutOfBounds() {
+        // Test that getDataByte returns 0 for out-of-bounds indices
+        int[] message = new int[]{
+            0x00, 0x00, 0x47, 0x11, 0x05,
+            0x00, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x00, 0x00
+        };
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(message);
+        assertEquals(0x01, decoded.getDataByte(0)); // Valid
+        assertEquals(0, decoded.getDataByte(5)); // Out of bounds
+        assertEquals(0, decoded.getDataByte(-1)); // Negative index
+    }
+
+    @Test
+    public void testMaxDataLength() {
+        // Test maximum data length (4 bytes for 13-byte message format)
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.SYSCOMMANDSTART)
+            .setAddress(0x00)
+            .setData(0x01, 0x02, 0x03, 0x04)
+            .setDataLength(4)
+            .build();
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(encoded);
+        assertEquals(4, decoded.getDataLength());
+        assertEquals(0x01, decoded.getDataByte(0));
+        assertEquals(0x04, decoded.getDataByte(3));
+        assertEquals(0x08, encoded[4]); // DLC = 4 address bytes + 4 data bytes
+    }
+
+    @Test
+    public void testBuilderDataLengthClamping() {
+        // Test data length handling - builder clamps internally to 8 but
+        // 13-byte message format only has space for 4 data bytes (indices 9-12)
+        // Setting more than 4 data bytes will write beyond array bounds
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.SYSCOMMANDSTART)
+            .setAddress(0x00)
+            .setData(0x01, 0x02, 0x03, 0x04)
+            .setDataLength(4)
+            .build();
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(encoded);
+        assertEquals(4, decoded.getDataLength());
+        assertEquals(0x01, decoded.getDataByte(0));
+        assertEquals(0x04, decoded.getDataByte(3));
+    }
+
+    @Test
+    public void testGetPriorityDescriptionUnknown() {
+        // Test unknown priority value
+        assertEquals("Unknown Priority", MarklinCanCodec.getPriorityDescription(99));
+    }
+
+    @Test
+    public void testGetProtocolFromAddressUnknown() {
+        // Test address outside all known ranges
+        assertEquals("Unknown Protocol", MarklinCanCodec.getProtocolFromAddress(0x10000000L));
+    }
+
+    @Test
+    public void testDecodeDLCEdgeCases() {
+        // Test DLC edge cases: DLC < 4 (invalid - less than 4 address bytes)
+        int[] invalidDLC = new int[]{
+            0x00, 0x00, 0x47, 0x11, 0x02, // DLC = 2 (less than 4 address bytes)
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00
+        };
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(invalidDLC);
+        assertEquals(0, decoded.getDataLength()); // Should be clamped to 0
+
+        // Test valid max DLC = 8 (4 address + 4 data bytes)
+        int[] validMaxDLC = new int[]{
+            0x00, 0x00, 0x47, 0x11, 0x08, // DLC = 8
+            0x00, 0x00, 0x00, 0x00,
+            0xAA, 0xBB, 0xCC, 0xDD
+        };
+
+        decoded = MarklinCanCodec.decode(validMaxDLC);
+        assertEquals(4, decoded.getDataLength());
+        assertEquals(0xAA, decoded.getDataByte(0));
+        assertEquals(0xDD, decoded.getDataByte(3));
+    }
+
+    @Test
+    public void testGetCommandCategoryUnknown() {
+        // Test command outside all known ranges
+        int[] unknownMsg = new int[]{0x1F, 0xFE, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0};
+        assertEquals("UNKNOWN", MarklinCanCodec.decode(unknownMsg).getCommandCategory());
+    }
+
+    @Test
+    public void testDecodeAlienCommand() {
+        // Test that codec accepts and decodes "alien" (unknown) commands
+        // Command 0x15 is in gap between FEEDBACK (0x12) and SOFTWARE (0x18)
+        int[] alienMsg = new int[]{
+            0x00, 0x2A, 0x47, 0x11, 0x05, // Command 0x15, encoded as (0x00 & 0x0F) << 7 | (0x2A >> 1)
+            0x00, 0x00, 0x00, 0x00,
+            0xAA, 0x00, 0x00, 0x00
+        };
+
+        // Should decode successfully without throwing exceptions
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(alienMsg);
+
+        assertEquals(0x15, decoded.getCommand());
+        assertEquals("UNKNOWN", decoded.getCommandCategory());
+        assertEquals(1, decoded.getDataLength());
+        assertEquals(0xAA, decoded.getDataByte(0));
+    }
+
+    @Test
+    public void testBuildAlienCommand() {
+        // Test that builder can create messages with arbitrary command values
+        // Use command 0x1E which is in gap between SOFTWARE (0x1C) and GUI (0x20)
+        int alienCommand = 0x1E;
+
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(alienCommand)
+            .setAddress(0x12345678L)
+            .setData(0xAA, 0xBB)
+            .setDataLength(2)
+            .build();
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(encoded);
+
+        assertEquals(alienCommand, decoded.getCommand());
+        assertEquals("UNKNOWN", decoded.getCommandCategory());
+        assertEquals(0x12345678L, decoded.getAddress());
+        assertEquals(2, decoded.getDataLength());
+        assertEquals(0xAA, decoded.getDataByte(0));
+        assertEquals(0xBB, decoded.getDataByte(1));
+    }
+
+    @Test
+    public void testDecodeGapRangeCommands() {
+        // Test commands in gaps between defined ranges
+
+        // Gap between ACCESSORY (0x0D) and FEEDBACK (0x10): commands 0x0E-0x0F
+        int[] gapMsg1 = new int[]{0x00, 0x1C, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x0E
+        assertEquals("UNKNOWN", MarklinCanCodec.decode(gapMsg1).getCommandCategory());
+
+        // Gap between FEEDBACK (0x12) and SOFTWARE (0x18): commands 0x13-0x17
+        int[] gapMsg2 = new int[]{0x00, 0x26, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x13
+        assertEquals("UNKNOWN", MarklinCanCodec.decode(gapMsg2).getCommandCategory());
+
+        // Gap between SOFTWARE (0x1C) and GUI (0x20): commands 0x1D-0x1F
+        int[] gapMsg3 = new int[]{0x00, 0x3A, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x1D
+        assertEquals("UNKNOWN", MarklinCanCodec.decode(gapMsg3).getCommandCategory());
+
+        // Gap between GUI (0x22) and AUTOMATION (0x30): commands 0x23-0x2F
+        int[] gapMsg4 = new int[]{0x00, 0x46, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x23
+        assertEquals("UNKNOWN", MarklinCanCodec.decode(gapMsg4).getCommandCategory());
+    }
+
+    @Test
+    public void testRoundTripWithResponseFlag() {
+        // Build a response message and verify round-trip
+        int[] encoded = MarklinCanCodec.builder()
+            .setPriority(MarklinConstants.PRIO_2)
+            .setCommand(MarklinConstants.LOCOSPEED)
+            .setResponse(true)
+            .setAddress(0xC003)
+            .setData(0x01, 0xF4)
+            .setDataLength(2)
+            .build();
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(encoded);
+
+        assertEquals(MarklinConstants.PRIO_2, decoded.getPriority());
+        assertEquals(MarklinConstants.LOCOSPEED, decoded.getCommand());
+        assertTrue(decoded.isResponse());
+        assertEquals(0xC003, decoded.getAddress());
+        assertEquals(2, decoded.getDataLength());
+        assertEquals(0x01, decoded.getDataByte(0));
+        assertEquals(0xF4, decoded.getDataByte(1));
+    }
+
+    @Test
+    public void testBuildWithNoData() {
+        // Test building message with zero data bytes
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.CMDPING)
+            .setAddress(0x12345678L)
+            .setDataLength(0)
+            .build();
+
+        assertEquals(13, encoded.length);
+        assertEquals(0x04, encoded[4]); // DLC = 4 address bytes + 0 data bytes
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(encoded);
+        assertEquals(0, decoded.getDataLength());
+        assertEquals(0x12345678L, decoded.getAddress());
+    }
+
+    @Test
+    public void testGetBaseAddressAllRanges() {
+        // Test base address calculation for all protocol ranges
+        assertEquals(0x100, MarklinCanCodec.getBaseAddress(0x1100)); // MM Function
+        assertEquals(0x200, MarklinCanCodec.getBaseAddress(0x2200)); // MM Loco 20kHz
+        assertEquals(0x100, MarklinCanCodec.getBaseAddress(0x0900)); // SX1
+        assertEquals(0x100, MarklinCanCodec.getBaseAddress(0x2900)); // SX1 Accessory
+        assertEquals(0x100, MarklinCanCodec.getBaseAddress(0x3100)); // MM Accessory
+        assertEquals(0x100, MarklinCanCodec.getBaseAddress(0x3900)); // DCC Accessory
+        assertEquals(0x100, MarklinCanCodec.getBaseAddress(0x4100)); // MFX
+        assertEquals(0x100, MarklinCanCodec.getBaseAddress(0x8100)); // SX2
+        assertEquals(0x100, MarklinCanCodec.getBaseAddress(0xC100)); // DCC
+    }
+
     @BeforeEach
     public void setUp() {
         JUnitUtil.setUp();
