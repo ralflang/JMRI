@@ -186,7 +186,7 @@ public class MarklinDeviceIdentifier {
         long uid = ((long) decoded.getDataByte(0) << 24)
                  | ((long) decoded.getDataByte(1) << 16)
                  | ((long) decoded.getDataByte(2) << 8)
-                 | ((long) decoded.getDataByte(3));
+                 | decoded.getDataByte(3);
 
         // Extract software version (bytes 4-5)
         int softwareVersion = (decoded.getDataByte(4) << 8) | decoded.getDataByte(5);

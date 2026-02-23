@@ -1,7 +1,6 @@
 package jmri.jmrix.marklin.cdb.bridge;
 
 import com.fazecast.jSerialComm.SerialPort;
-import jmri.jmrix.marklin.MarklinCanCodec;
 import jmri.jmrix.marklin.MarklinMessageFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -104,7 +104,6 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
             .setCommand(MarklinConstants.CMDCANBOOT)
             .setAddress(0x00)
             .setData(0x11) // Magic value to activate Gleisbox
-            .setDataLength(5)
             .build();
         return new MarklinMessage(encoded);
     }
@@ -134,7 +133,7 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
         int[] encoded = MarklinCanCodec.builder()
             .setCommand(MarklinConstants.CMDCANBOOT)
             .setAddress(0x00)
-            .setDataLength(0) // No data bytes - bootloader invocation
+            // No setData call - DLC will be 0 (no data bytes, bootloader invocation)
             .build();
         return new MarklinMessage(encoded);
     }
