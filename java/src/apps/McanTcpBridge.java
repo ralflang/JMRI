@@ -328,8 +328,8 @@ public class McanTcpBridge {
         System.out.println("  To use serial-only software (e.g., programmer tools) alongside JMRI,");
         System.out.println("  you can create a virtual COM port that connects to the bridge's TCP server.");
         System.out.println();
-        System.out.println("  Linux/macOS: ./scripts/create-mcan-virtual-port.sh /dev/ttyVCOM0 localhost 15731");
-        System.out.println("  Windows:     .\\scripts\\create-mcan-virtual-port.ps1 -VirtualPort COM99 -TcpHost localhost -TcpPort 15731");
+        System.out.println("  Linux/macOS: ./scripts/Linux/create-mcan-virtual-port.sh /dev/ttyVCOM0 localhost 15731");
+        System.out.println("  Windows:     use third-party software such as com2tcp or com2com");
         System.out.println();
         System.out.println("  See: help/en/html/hardware/marklin/McanTcpBridge.shtml#virtual-ports");
         System.out.println();

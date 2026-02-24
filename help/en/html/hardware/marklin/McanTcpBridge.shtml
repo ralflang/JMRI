@@ -17,13 +17,15 @@
       <h1>Hardware Support: MCAN Protocol Serial-to-TCP Bridge</h1>
 
       <p>The MCAN TCP Bridge is a standalone CLI program that bridges M&auml;rklin CAN (MCAN) serial
-      adapters to TCP/IP, allowing JMRI's CS2 Ethernet adapter to connect to physical serial MCAN
-      devices over the network. This enables multiple computers to share a single CC-Schnitte USB adapter.</p>
+      adapters to TCP/IP. This allows JMRI's CS2 Ethernet adapter to connect to physical serial MCAN
+      devices over the network. You can forward a single CC-Schnitte USB adapter to a remote computer or connect multiple programs via the network simultaneously.</p>
 
       <h2>Quick Start</h2>
 
       <ol>
-        <li><strong>Build:</strong>
+        <li><strong>Building the shared library version is included in JMRI's build pipeline:</strong>
+        </li>
+        <li><strong>Build the standalone version:</strong>
           <pre>ant mcan-tcp-bridge-jar</pre>
           Output: <code>dist/mcan-tcp-bridge.jar</code>
         </li>
@@ -34,12 +36,9 @@
 
         <li><strong>Start bridge:</strong>
           <pre>
-# Single device
+# Single device, default port 15731 on all network interfaces
 java -jar dist/mcan-tcp-bridge.jar --port COM3         # Windows
 java -jar dist/mcan-tcp-bridge.jar --port /dev/ttyUSB0 # Linux
-
-# Multiple devices
-java -jar dist/mcan-tcp-bridge.jar --port COM3,COM4,COM5
           </pre>
         </li>
 
@@ -59,60 +58,64 @@ java -jar dist/mcan-tcp-bridge.jar --port COM3,COM4,COM5
         </tr>
         <tr>
           <td><code>--port COM3</code></td>
-          <td>COM3 → TCP 15731 (all interfaces)</td>
+          <td>COM3 to TCP 15731 (all interfaces)</td>
         </tr>
         <tr>
           <td><code>--port COM3:50000</code></td>
-          <td>COM3 → TCP 50000 (all interfaces)</td>
+          <td>COM3 to TCP 50000 (all interfaces)</td>
         </tr>
         <tr>
           <td><code>--port COM3:127.0.0.1:15731</code></td>
-          <td>COM3 → localhost:15731 only</td>
+          <td>COM3 to localhost:15731 only</td>
         </tr>
         <tr>
           <td><code>--port COM2,COM3</code></td>
-          <td>COM2 → 15731, COM3 → 15732</td>
+          <td>COM2 to 15731, COM3 to 15732</td>
         </tr>
         <tr>
           <td><code>--port COM2,COM3,COM4</code></td>
-          <td>COM2 → 15731, COM3 → 15732, COM4 → 15733</td>
+          <td>COM2 to 15731, COM3 to 15732, COM4 to 15733</td>
         </tr>
         <tr>
           <td><code>--port COM2:50000,COM3:50001</code></td>
-          <td>COM2 → 50000, COM3 → 50001</td>
+          <td>COM2 to 50000, COM3 to 50001</td>
         </tr>
       </table>
 
       <h2>Overview</h2>
 
-      <p>The bridge program creates a TCP server (default port 15731) that connects to one or more
-      MCAN serial adapters (such as the CC-Schnitte by CanDigitalBahn). Multiple JMRI instances can
-      then connect to the bridge as if it were a physical CS2 command station.</p>
+      <p>The bridge program creates one or multiple TCP servers that connect to one
+      MCAN serial adapter each (such as the CC-Schnitte by CAN-digital-Bahn). One or multiple clients can connect to each TCP server simultaneously.</p>
 
       <p>Key features include:</p>
       <ul>
-        <li>Bidirectional serial ↔ TCP bridge with message broadcasting</li>
-        <li>Multiple TCP client support (concurrent JMRI instances)</li>
+        <li>Bidirectional serial to TCP bridge with message broadcasting</li>
+        <li>Multiple TCP client support (i.e. JMRI and product support software)</li>
         <li>Multiple device support (bridge several adapters simultaneously)</li>
         <li>Hot-plug support with automatic reconnection when devices are unplugged/replugged</li>
         <li>Cross-platform support (Windows, Linux, macOS)</li>
-        <li>Real-time statistics and logging</li>
+        <li>Command monitor for debugging and logging MCAN messages in a human readable format</li>
       </ul>
 
       <h2>Requirements</h2>
 
       <ul>
-        <li>Java 11 or higher</li>
-        <li>MCAN serial adapter (e.g., CC-Schnitte USB adapter)</li>
+        <li>Java version requirements same as JMRI</li>
+        <li>MCAN serial adapter (e.g. CC-Schnitte USB adapter)</li>
         <li>JMRI installation or standalone bridge JAR</li>
       </ul>
 
       <h2>Building the Bridge</h2>
 
-      <p>The bridge is built as part of JMRI by default. For standalone deployment, use ant targets:</p>
+      <p>By default, the bridge is built as a part of JMRI linking to other parts of the installation.
+        Run
+        <pre>mvn antrun:run -Danttarget=mcan-tcp-bridge</pre> to build and run the bridge from JMRI source.
+      </p>
+      This is suitable if you want to run the bridge on the same computer as JMRI itself and update it as part of JMRI's software lifecycle.
+
 
       <h3>Build Standalone JAR</h3>
-
+      For standalone deployment, use ant target "mcan-tcp-bridge-jar":
       <p>Using Ant:</p>
       <pre>
 cd /path/to/JMRI
@@ -126,7 +129,7 @@ mvn antrun:run -Danttarget=mcan-tcp-bridge-jar
       </pre>
 
       <p>This creates <code>dist/mcan-tcp-bridge.jar</code> - a self-contained JAR with all
-      dependencies embedded (~5MB).</p>
+      dependencies embedded .</p>
 
       <h3>Run from Development Environment</h3>
 
@@ -180,9 +183,9 @@ java -jar mcan-tcp-bridge.jar --port COM3,COM4,COM5
 
       <p>This creates three TCP servers:</p>
       <ul>
-        <li>COM3 → TCP port 15731</li>
-        <li>COM4 → TCP port 15732</li>
-        <li>COM5 → TCP port 15733</li>
+        <li>COM3 - TCP port 15731</li>
+        <li>COM4 - TCP port 15732</li>
+        <li>COM5 - TCP port 15733</li>
       </ul>
 
       <p>You can also specify custom ports:</p>
@@ -193,24 +196,33 @@ java -jar mcan-tcp-bridge.jar --port COM3:50000,COM4:50001
       <h3>Command Line Options</h3>
 
       <pre>
-Usage: java -jar mcan-tcp-bridge.jar --port &lt;serial_port&gt; [options]
+Usage: java -jar mcan-tcp-bridge.jar --port &lt;port_spec&gt; [options]
+
+Port Specification (--port / -p):
+  &lt;serial&gt;[:&lt;bind_addr&gt;][:&lt;tcp_port&gt;][,&lt;serial&gt;[:&lt;bind_addr&gt;][:&lt;tcp_port&gt;],...]
+
+  Windows: COM1, COM3, etc.
+  Linux:   /dev/ttyUSB0, /dev/ttyACM0, etc.
+  macOS:   /dev/cu.usbserial-*
+
+  - TCP port is embedded in the port specification (no separate --tcp flag)
+  - First device without explicit TCP port gets 15731; subsequent devices
+    get auto-incremented ports (15732, 15733, ...)
+  - Bind address defaults to all interfaces (0.0.0.0) when omitted
 
 Options:
-  --port, -p &lt;port&gt;    Serial port name (required)
-                       Windows: COM1, COM3, etc.
-                       Linux:   /dev/ttyUSB0, /dev/ttyACM0, etc.
-                       macOS:   /dev/cu.usbserial-*
-
-  --tcp, -t &lt;port&gt;     TCP server port (default: 15731)
-  --baud, -b &lt;rate&gt;    Serial baud rate (default: 500000)
-  --monitor, -m        Enable monitor mode with decoded messages
+  --port, -p &lt;spec&gt;    Port specification (required, see above)
+  --baud, -b &lt;rate&gt;    Serial baud rate for all devices (default: 500000)
+  --monitor, -m        Enable message monitoring to stdout (decoded MCAN frames)
   --list, -l           List available serial ports and exit
   --help, -h           Show this help message
 
 Examples:
   java -jar mcan-tcp-bridge.jar --port COM3
-  java -jar mcan-tcp-bridge.jar --port /dev/ttyUSB0 --tcp 12345
+  java -jar mcan-tcp-bridge.jar --port COM3:50000
   java -jar mcan-tcp-bridge.jar --port COM3 --monitor
+  java -jar mcan-tcp-bridge.jar --port COM3:127.0.0.1:15731
+  java -jar mcan-tcp-bridge.jar --port COM2,COM3:49999,COM4:50000
       </pre>
 
       <h2>Connecting JMRI to the Bridge</h2>
@@ -219,7 +231,7 @@ Examples:
 
       <ol>
         <li>Start the bridge program</li>
-        <li>Open JMRI and go to <strong>Edit → Preferences</strong></li>
+        <li>Open JMRI and go to <strong>Edit - Preferences</strong></li>
         <li>Click the <strong>Connections</strong> tab</li>
         <li>Click <strong>+</strong> to add a new connection</li>
         <li>Select:
@@ -239,7 +251,7 @@ Examples:
       <p>The bridge supports USB hot-plugging without requiring a restart:</p>
 
       <ul>
-        <li><strong>Starting without devices</strong>: Bridge can start even if the MCAN adapter is not plugged in</li>
+        <li><strong>Starting without devices</strong>: Bridge can start even if the MCAN adapter is not plugged in or powered off</li>
         <li><strong>Unplugging during operation</strong>: Bridge continues running, TCP clients stay connected</li>
         <li><strong>Automatic reconnection</strong>: Bridge detects when device is replugged and reconnects within 5 seconds</li>
         <li><strong>Graceful degradation</strong>: TCP messages are accepted but discarded until device reconnects</li>
@@ -255,13 +267,15 @@ Examples:
 java -jar mcan-tcp-bridge.jar --port COM3 --monitor
       </pre>
 
-      <p>Monitor mode displays:</p>
+      <p>Monitor mode displays each CAN frame formatted by <code>MarklinMessageFormatter</code>:</p>
       <ul>
-        <li>Raw CAN frames in hex format</li>
-        <li>Decoded message components (priority, command, hash, DLC, address, data)</li>
-        <li>Human-readable command descriptions</li>
-        <li>Device identification (CS2, MS2, Gleisbox, etc.) from protocol messages</li>
-        <li>ASCII representation of data bytes</li>
+        <li>Direction tag ([Serial-&gt;TCP] or [TCP-&gt;Serial])</li>
+        <li>Device identification from hash or PING response (e.g. [MS2:0x00112233])</li>
+        <li>Priority level</li>
+        <li>Human-readable command name and parameters</li>
+        <li>Request or Reply flag</li>
+        <li>Target address and protocol (DCC, MM2, MFX, etc.)</li>
+        <li>Raw hex bytes of the 13-byte CAN frame</li>
       </ul>
 
       <h2>Running as a Service</h2>
@@ -297,15 +311,70 @@ sudo systemctl status mcan-tcp-bridge
 
       <h3>Windows Service</h3>
 
-      <p>Use NSSM (Non-Sucking Service Manager):</p>
+      <p>Create a Windows service using PowerShell and native service infrastructure.</p>
+
+      <p><strong>Step 1:</strong> Create a wrapper script <code>C:\mcan-tcp-bridge\run-bridge.bat</code>:</p>
 
       <pre>
-nssm install McanTcpBridge "C:\Program Files\Java\jdk-11\bin\java.exe"
-nssm set McanTcpBridge AppParameters "-jar C:\mcan-tcp-bridge\mcan-tcp-bridge.jar --port COM3"
-nssm set McanTcpBridge AppDirectory "C:\mcan-tcp-bridge"
-nssm set McanTcpBridge Start SERVICE_AUTO_START
-nssm start McanTcpBridge
+@echo off
+cd /d C:\mcan-tcp-bridge
+"C:\Program Files\Java\jdk-11\bin\java.exe" -jar mcan-tcp-bridge.jar --port COM3
       </pre>
+
+      <p><strong>Step 2:</strong> Create the service using PowerShell (run as Administrator):</p>
+
+      <pre>
+# Create the service
+sc.exe create McanTcpBridge `
+  binPath= "C:\mcan-tcp-bridge\run-bridge.bat" `
+  DisplayName= "MCAN TCP Bridge Service" `
+  start= auto
+
+# Configure service description
+sc.exe description McanTcpBridge "Bridges MCAN serial adapters to TCP/IP for JMRI"
+
+# Start the service
+sc.exe start McanTcpBridge
+
+# Check service status
+sc.exe query McanTcpBridge
+      </pre>
+
+      <p><strong>Alternative:</strong> Use PowerShell script for service management:</p>
+
+      <pre>
+# Create service with New-Service cmdlet
+New-Service -Name "McanTcpBridge" `
+  -BinaryPathName "C:\mcan-tcp-bridge\run-bridge.bat" `
+  -DisplayName "MCAN TCP Bridge Service" `
+  -Description "Bridges MCAN serial adapters to TCP/IP for JMRI" `
+  -StartupType Automatic
+
+# Start the service
+Start-Service -Name "McanTcpBridge"
+
+# Check service status
+Get-Service -Name "McanTcpBridge"
+      </pre>
+
+      <p><strong>Service Management:</strong></p>
+
+      <pre>
+# Stop service
+sc.exe stop McanTcpBridge
+# or: Stop-Service -Name "McanTcpBridge"
+
+# Remove service
+sc.exe delete McanTcpBridge
+# or: Remove-Service -Name "McanTcpBridge"
+
+# View service logs (Event Viewer)
+Get-EventLog -LogName Application -Source "Service Control Manager" -Newest 20
+      </pre>
+
+      <p><strong>Note:</strong> For production use, consider using a proper service wrapper like
+      <a href="https://github.com/winsw/winsw">WinSW</a> which provides better logging and error handling
+      than batch file wrappers.</p>
 
       <h2>Troubleshooting</h2>
 
@@ -327,7 +396,7 @@ nssm start McanTcpBridge
 
       <p><strong>Solutions:</strong></p>
       <ol>
-        <li>Use a different port: <code>--tcp 12346</code></li>
+        <li>Use a different port by specifying it in the port argument: <code>--port COM3:12346</code></li>
         <li>Check what's using port 15731: <code>netstat -an | grep 15731</code></li>
         <li>Stop the conflicting process</li>
       </ol>
@@ -351,7 +420,7 @@ java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar mcan-tcp-bridge.jar --p
 
       <p>Also check:</p>
       <ul>
-        <li>CC-Schnitte is powered and connected to track</li>
+        <li>CC-Schnitte is powered and connected to track box</li>
         <li>Serial port LED indicators are active</li>
         <li>Test with M&auml;rklin software first to verify hardware works</li>
       </ul>
@@ -359,24 +428,25 @@ java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar mcan-tcp-bridge.jar --p
       <h2>Performance</h2>
 
       <ul>
-        <li><strong>Latency</strong>: &lt; 10ms typical bridge latency</li>
         <li><strong>Throughput</strong>: Supports full 500kbaud serial bandwidth</li>
         <li><strong>Clients</strong>: No hard limit, tested with 10+ concurrent clients</li>
-        <li><strong>CPU</strong>: &lt; 5% CPU usage on modern hardware</li>
         <li><strong>Memory</strong>: ~50MB RAM footprint</li>
       </ul>
 
-      <h2 id="virtual-ports">Helper Scripts</h2>
+      <h2 id="virtual-ports">Connect virtual serial ports to the bridge</h2>
 
-      <p>JMRI provides helper scripts for creating virtual serial ports to test the bridge without
-      physical hardware, or to allow serial-only software (e.g., programmer tools) to work alongside JMRI.</p>
+      <p>JMRI provides helper scripts for creating virtual serial ports which connect to the bridge.
+        The bridge contains code which avoids garbled messages when multiple clients attempt to send to the bus at the same time.
+        This allows to run both JMRI and product support software such as Can-digital-Bahn's WeichenChef Configuration utility simultaneously and even through a wifi connection. Traditionally the configuration tool needs to run locally on the computer connecting to the CC-Schnitte adapter.
+        It would own the adapter exclusively and JMRI would need its own physical adapter. Because of hotplugging support, the bridge may run on a small dedicated computer such as a Raspberry Pi, and both JMRI and the configuration tool can connect to it remotely. Put your laptop or dispatcher desk at comfortable distance from your layout.
+      </p>
 
       <h3>Linux and macOS</h3>
 
-      <p>Use <code>scripts/create-mcan-virtual-port.sh</code> (requires <code>socat</code>):</p>
+      <p>Use <code>scripts/Linux/create-mcan-virtual-port.sh</code> (requires <code>socat</code>):</p>
 
       <pre>
-./scripts/create-mcan-virtual-port.sh /dev/ttyVCOM0 localhost 15731
+./scripts/Linux/create-mcan-virtual-port.sh /dev/ttyVCOM0 localhost 15731
       </pre>
 
       <p>This creates a virtual serial port <code>/dev/ttyVCOM0</code> that connects to the bridge's
@@ -384,34 +454,25 @@ java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar mcan-tcp-bridge.jar --p
 
       <h3>Windows</h3>
 
-      <p>Use <code>scripts/create-mcan-virtual-port.ps1</code> (requires <code>com2tcp</code>):</p>
-
-      <pre>
-.\scripts\create-mcan-virtual-port.ps1 -VirtualPort COM99 -TcpHost localhost -TcpPort 15731
-      </pre>
-
-      <p>Or for com0com-based virtual ports, use <code>scripts/create-mcan-virtual-port-com0com.ps1</code>.</p>
-
-      <p>These scripts enable serial software to share the CC-Schnitte adapter with JMRI via the bridge's
-      message multiplexing. The bridge broadcasts serial data to all TCP clients (both JMRI and virtual port
-      connections), and any client can send commands to the serial port.</p>
+      <p>Windows virtual serial ports require third-party software beyond the scope of JMRI,
+      such as com2tcp or com2com.</p>
 
       <h2>Notes</h2>
 
       <ul>
-        <li>The bridge is completely transparent to JMRI - it doesn't interpret or modify MCAN messages.
+        <li>The bridge is completely transparent to JMRI. It doesn't interpret or modify MCAN messages.
         All protocol handling is done by JMRI and the CC-Schnitte adapter.</li>
 
         <li>Multiple JMRI instances can connect simultaneously. All clients receive broadcast serial data,
         and any client can send commands to the serial port.</li>
 
-        <li>The bridge uses automatic baud rate detection but defaults to 500,000 baud for CC-Schnitte adapters.
+        <li>The bridge uses a fixed baud rate (default 500,000 baud, configurable with <code>--baud</code>).
         Serial parameters are: 8 data bits, 1 stop bit, no parity, no flow control, RTS/DTR enabled.</li>
 
         <li>If the serial device is unplugged during operation, the bridge continues running and TCP clients
         stay connected. When the device is replugged, the bridge automatically reconnects within 5 seconds.</li>
 
-        <li>The bridge can run as a system service (Linux systemd or Windows NSSM) for 24/7 operation.</li>
+        <li>The bridge can run as a system service (Linux systemd or Windows WinSW) for 24/7 operation.</li>
       </ul>
 
       <h2>Related Documentation</h2>
