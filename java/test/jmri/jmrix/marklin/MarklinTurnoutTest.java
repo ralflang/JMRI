@@ -25,7 +25,7 @@ public class MarklinTurnoutTest extends jmri.implementation.AbstractTurnoutTestB
         Assertions.assertNotNull(tc);
         MarklinMessage m = tc.getLastMessageSent();
         Assertions.assertNotNull(m);
-        Assertions.assertEquals("00 16 47 11 06 00 00 30 00 00 01 00 00", m.toString());
+        Assertions.assertEquals("00 16 47 11 02 00 00 30 00 00 01 00 00", m.toString()); // DLC: 2 data bytes per CAN 2.0B spec
     }
 
     @Override
@@ -33,7 +33,7 @@ public class MarklinTurnoutTest extends jmri.implementation.AbstractTurnoutTestB
         Assertions.assertNotNull(tc);
         MarklinMessage m = tc.getLastMessageSent();
         Assertions.assertNotNull(m);
-        Assertions.assertEquals("00 16 47 11 06 00 00 30 00 01 01 00 00", m.toString());
+        Assertions.assertEquals("00 16 47 11 02 00 00 30 00 01 01 00 00", m.toString()); // DLC: 2 data bytes per CAN 2.0B spec
     }
 
     @Test
@@ -45,6 +45,7 @@ public class MarklinTurnoutTest extends jmri.implementation.AbstractTurnoutTestB
         MarklinReply r = new MarklinReply();
         r.setElement(0, MarklinConstants.PRIO_1 << 4); // Set PRIO_1 in bits 7-4
         r.setCommand(MarklinConstants.ACCCOMMANDSTART);
+        r.setElement(4, 2); // DLC: 2 data bytes per CAN 2.0B spec
         ((MarklinTurnout)t).reply(r); // nothing happens, unknown address
 
         r.setAddress( 1 + MarklinConstants.MM1ACCSTART - 1); // toNum + Constant -1
@@ -66,6 +67,7 @@ public class MarklinTurnoutTest extends jmri.implementation.AbstractTurnoutTestB
         MarklinReply r = new MarklinReply();
         r.setElement(0, MarklinConstants.PRIO_1 << 4); // Set PRIO_1 in bits 7-4
         r.setCommand(MarklinConstants.ACCCOMMANDSTART);
+        r.setElement(4, 2); // DLC: 2 data bytes per CAN 2.0B spec
         ((MarklinTurnout)t).reply(r); // nothing happens, unknown address
 
         r.setAddress( 1 + MarklinConstants.DCCACCSTART - 1); // toNum + Constant -1

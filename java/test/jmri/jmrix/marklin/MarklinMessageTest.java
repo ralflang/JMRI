@@ -92,8 +92,8 @@ public class MarklinMessageTest extends jmri.jmrix.AbstractMessageTestBase {
 
         // DLC should be different
         Assert.assertNotEquals("DLC should differ", activation.getElement(4), bootloader.getElement(4));
-        Assert.assertEquals("Activation DLC should be 5", 0x05, activation.getElement(4));
-        Assert.assertEquals("Bootloader DLC should be 0", 0x00, bootloader.getElement(4));
+        Assert.assertEquals("Activation DLC should be 1", 0x01, activation.getElement(4)); // 1 data byte (0x11)
+        Assert.assertEquals("Bootloader DLC should be 0", 0x00, bootloader.getElement(4)); // 0 data bytes
 
         // Data byte 0 should be different
         Assert.assertEquals("Activation should have magic 0x11", 0x11, activation.getElement(9));

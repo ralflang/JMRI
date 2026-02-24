@@ -48,7 +48,7 @@ public class MarklinDeviceIdentifierTest {
         int[] message = new int[]{
             0x00, 0x31, // Command 0x18 (PING), response flag set
             0x11, 0x22, // Hash (calculated from UID)
-            0x0C,       // DLC = 12 (4 address + 8 data bytes)
+            0x08,       // DLC: 8 data bytes per CAN 2.0B spec (4 UID + 2 version + 2 device type)
             0x00, 0x00, 0x00, 0x00, // Address (broadcast)
             0x00, 0x10, 0x00, 0x01, // UID bytes 0-3
             0x01, 0x02,             // Software version bytes 4-5
@@ -73,7 +73,7 @@ public class MarklinDeviceIdentifierTest {
         int[] message = new int[]{
             0x00, 0x31, // Command 0x18 (PING), response flag set
             0x47, 0x11, // Hash
-            0x0C,       // DLC = 12
+            0x08,       // DLC: 8 data bytes per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00, // Address
             0x00, 0x30, 0xAB, 0xCD, // UID (MS2 with serial ABCD)
             0x02, 0x05,             // Software version v2.5
@@ -96,7 +96,7 @@ public class MarklinDeviceIdentifierTest {
         int[] message = new int[]{
             0x00, 0x31, // Command 0x18 (PING), response flag set
             0x12, 0x34, // Hash
-            0x0C,       // DLC = 12
+            0x08,       // DLC: 8 data bytes per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00, // Address
             0xFF, 0xFF, 0x12, 0x34, // UID (CS2)
             0x03, 0x00,             // Software version v3.0
@@ -118,7 +118,7 @@ public class MarklinDeviceIdentifierTest {
         int[] message = new int[]{
             0x00, 0x08, // Command 0x04 (LOCOSPEED)
             0x47, 0x11, // Hash
-            0x06,       // DLC
+            0x02,       // DLC: 2 data bytes per CAN 2.0B spec
             0x00, 0x00, 0xC0, 0x03, // Address
             0x01, 0xF4, 0x00, 0x00  // Speed data
         };
@@ -135,7 +135,7 @@ public class MarklinDeviceIdentifierTest {
         int[] message = new int[]{
             0x00, 0x31, // Command 0x18 (PING), response flag set
             0x47, 0x11, // Hash
-            0x05,       // DLC = 5 (wrong! should be 12 for PING response)
+            0x01,       // DLC: 1 data byte (wrong! should be 8 for PING response)
             0x00, 0x00, 0x00, 0x00, // Address
             0x00, 0x00, 0x00, 0x00  // Incomplete data
         };
@@ -152,7 +152,7 @@ public class MarklinDeviceIdentifierTest {
         int[] message = new int[]{
             0x00, 0x08, // Command 0x04 (LOCOSPEED)
             0x47, 0x11, // Hash
-            0x06,       // DLC
+            0x02,       // DLC: 2 data bytes per CAN 2.0B spec
             0x00, 0x00, 0xC0, 0x03, // Address
             0x01, 0xF4, 0x00, 0x00  // Speed data
         };
@@ -237,7 +237,7 @@ public class MarklinDeviceIdentifierTest {
         int[] request = new int[]{
             0x00, 0x30, // Command 0x18 (PING), no response flag
             0x47, 0x11, // Hash
-            0x04,       // DLC = 4 (address only, no data)
+            0x00,       // DLC: 0 data bytes per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00, // Address
             0x00, 0x00, 0x00, 0x00
         };
@@ -253,7 +253,7 @@ public class MarklinDeviceIdentifierTest {
         int[] response = new int[]{
             0x00, 0x31, // Command 0x18 (PING), response flag set
             0x47, 0x11, // Hash
-            0x0C,       // DLC = 12 (4 address + 8 data)
+            0x08,       // DLC: 8 data bytes per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00, // Address
             0x00, 0x10, 0x00, 0x01, // UID
             0x01, 0x02, 0x00, 0x10  // SW version + device type

@@ -70,13 +70,13 @@ public class MarklinPowerManagerTest extends jmri.jmrix.AbstractPowerManagerTest
     @Override
     protected boolean outboundOnOK(int index) {
         MarklinMessage m = tc.getLastMessageSent();
-        return m != null && "00 00 47 11 05 00 00 00 00 01 00 00 00".equals(m.toString());
+        return m != null && "00 00 47 11 01 00 00 00 00 01 00 00 00".equals(m.toString()); // DLC: 1 data byte per CAN 2.0B spec
     }
 
     @Override
     protected boolean outboundOffOK(int index) {
         MarklinMessage m = tc.getLastMessageSent();
-        return m != null && "00 00 47 11 05 00 00 00 00 00 00 00 00".equals(m.toString());
+        return m != null && "00 00 47 11 01 00 00 00 00 00 00 00 00".equals(m.toString()); // DLC: 1 data byte per CAN 2.0B spec
     }
 
     @Override
