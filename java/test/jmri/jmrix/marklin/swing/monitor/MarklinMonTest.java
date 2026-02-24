@@ -16,7 +16,7 @@ public class MarklinMonTest {
     public void testDisplayReply() {
         MarklinReply r = new MarklinReply();
         Assertions.assertEquals(
-            "Priority 1, Stop/Go/Short Command: System Request Message Broadcast0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0"
+            "Priority 1: Stop/Go/Short Command: System Stop Request Message Broadcast 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0"
             , MarklinMon.displayReply(r));
     }
 

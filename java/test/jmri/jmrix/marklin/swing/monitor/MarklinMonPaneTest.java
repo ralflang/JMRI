@@ -44,7 +44,7 @@ public class MarklinMonPaneTest extends jmri.jmrix.AbstractMonPaneTestBase {
 
         JUnitUtil.waitFor( () -> !pane.getFrameText().isEmpty(), "text populated");
 
-        Assertions.assertTrue( pane.getFrameText().contains("00 00 47 11 05 00 00 00 00 01 00 00 00"));
+        Assertions.assertTrue( pane.getFrameText().contains("00 00 47 11 01 00 00 00 00 01 00 00 00")); // DLC: 1 data byte per CAN 2.0B spec
 
         ampScaff.clickClearButton();
         JUnitUtil.waitFor( () -> pane.getFrameText().isEmpty(), "text cleared");
