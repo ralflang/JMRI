@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="generator" content="HTML Tidy for HTML5 for Apple macOS version 5.8.0">
+  <title>JMRI: M&auml;rklin CAN Codec Library Implementation</title>
+  <meta name="author" content="JMRI Community">
+  <meta name="keywords" content="JMRI Marklin MCAN CAN codec protocol implementation">
+  <!--#include virtual="/help/en/parts/Style.shtml" -->
+</head>
+<body>
+  <!--#include virtual="/help/en/parts/Header.shtml" -->
+
+  <div id="mBody">
+    <!--#include virtual="../SidebarUp.shtml" -->
+
+    <div id="mainContent">
+      <h1>M&auml;rklin CAN Codec Library Implementation</h1>
+
+      <p>This page describes the JMRI M&auml;rklin CAN (MCAN) codec library implementation.
+      Please also read the <a href=
+      "https://www.jmri.org/JavaDoc/doc/jmri/jmrix/marklin/package-summary.html">Javadocs for the
+      jmrix.marklin package</a>.</p>
+
+      <h2>Overview</h2>
+
+      <p>The <a href="https://www.jmri.org/JavaDoc/doc/jmri/jmrix/marklin/MarklinCanCodec.html">MarklinCanCodec</a>
+      class provides a centralized library for encoding and decoding M&auml;rklin CAN (MCAN) protocol messages.
+      This refactoring was implemented as part of issue <a href="https://github.com/JMRI/JMRI/issues/14104">#14104</a>
+      to address code duplication and improve maintainability of the MCAN protocol implementation.</p>
+
+      <h2>Problem Statement</h2>
+
+      <p>Prior to this refactoring, MCAN message encoding and decoding logic was scattered across multiple classes:</p>
+
+      <ul>
+        <li><strong>MarklinMessage</strong>: Manual bit manipulation for encoding messages</li>
+        <li><strong>MarklinMon</strong>: Direct byte access for decoding and displaying messages</li>
+        <li><strong>MarklinThrottle</strong>: Direct byte access for processing loco control replies</li>
+        <li><strong>MarklinTurnout</strong>: Direct byte access for processing accessory replies</li>
+      </ul>
+
+      <p>This approach had several issues:</p>
+
+      <ol>
+        <li><strong>Code Duplication</strong>: Similar decoding logic appeared in multiple places</li>
+        <li><strong>Error-Prone</strong>: Manual bit shifting and array indexing increased bug risk</li>
+        <li><strong>Hard to Maintain</strong>: Protocol changes required updates across multiple files</li>
+        <li><strong>Poor Readability</strong>: Magic numbers and array indices obscured intent</li>
+        <li><strong>No Separation of Concerns</strong>: Protocol logic was mixed with business logic</li>
+      </ol>
+
+      <h3>Example of Old Approach</h3>
+
+      <pre>
+// Old decoding in MarklinThrottle
+if (m.getCommand() == MarklinConstants.LOCOSPEED) {
+    int speed = m.getElement(9);
+    speed = (speed &lt;&lt; 8) + (m.getElement(10));
+    // ...
+}
+
+// Old encoding in MarklinMessage
+public static MarklinMessage setLocoSpeed(int addr, int speed) {
+    MarklinMessage m = new MarklinMessage();
+    m.setElement(0, (MarklinConstants.LOCOSPEED &gt;&gt; 7) &amp; 0xFF);
+    m.setElement(1, (MarklinConstants.LOCOSPEED &lt;&lt; 1) &amp; 0xFF);
+    m.setElement(2, MarklinConstants.HASHBYTE1 &amp; 0xFF);
+    m.setElement(3, MarklinConstants.HASHBYTE2 &amp; 0xFF);
+    m.setElement(4, 0x06 &amp; 0xFF);
+    m.setElement(5, (addr &gt;&gt; 24) &amp; 0xFF);
+    // ... more manual byte manipulation
+}
+      </pre>
+
+      <h2>Solution: MarklinCanCodec Library</h2>
+
+      <p>The codec library provides a clean separation between protocol mechanics and application logic
+      through three main components:</p>
+
+      <h3>1. DecodedMessage Class</h3>
+
+      <p>An immutable data structure representing a fully decoded MCAN message:</p>
+
+      <pre>
+MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(rawMessage);
+
+// Access decoded fields with type-safe methods
+int priority = decoded.getPriority();
+int command = decoded.getCommand();
+boolean isResponse = decoded.isResponse();
+long address = decoded.getAddress();
+int speed = (decoded.getDataByte(0) &lt;&lt; 8) + decoded.getDataByte(1);
+      </pre>
+
+      <h3>2. MessageBuilder Class</h3>
+
+      <p>A fluent API for constructing encoded messages:</p>
+
+      <pre>
+int[] encoded = MarklinCanCodec.builder()
+    .setCommand(MarklinConstants.LOCOSPEED)
+    .setAddress(0xC003)
+    .setData((speed &gt;&gt; 8) &amp; 0xff, speed &amp; 0xff)
+    .setDataLength(2)
+    .build();
+      </pre>
+
+      <h3>3. Utility Methods</h3>
+
+      <p>Protocol analysis helpers for common operations:</p>
+
+      <pre>
+String priorityDesc = MarklinCanCodec.getPriorityDescription(priority);
+String protocol = MarklinCanCodec.getProtocolFromAddress(address);
+long baseAddr = MarklinCanCodec.getBaseAddress(address);
+      </pre>
+
+      <h2>MCAN Protocol Structure</h2>
+
+      <p>The codec handles the 13-byte MCAN message format per the CS2 CAN Protocol 2.0 specification:</p>
+
+      <table>
+        <tr>
+          <th>Bytes</th>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+        <tr>
+          <td>0</td>
+          <td>Priority + Command[14:7]</td>
+          <td>Priority (bits 7-4), Command high bits (bits 3-0)</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>Command[6:0] + Response</td>
+          <td>Command low bits (bits 7-1), Response flag (bit 0)</td>
+        </tr>
+        <tr>
+          <td>2-3</td>
+          <td>Hash</td>
+          <td>16-bit hash/identifier</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>DLC</td>
+          <td>Data Length Code (0-8 data bytes only, per CAN 2.0B)</td>
+        </tr>
+        <tr>
+          <td>5-8</td>
+          <td>Address</td>
+          <td>32-bit CAN address (big-endian)</td>
+        </tr>
+        <tr>
+          <td>9-12</td>
+          <td>Data</td>
+          <td>0-4 data bytes</td>
+        </tr>
+      </table>
+
+      <h3>Priority Levels</h3>
+
+      <ul>
+        <li><strong>Priority 0 (0x00)</strong>: Stop/Go/Short messages</li>
+        <li><strong>Priority 1 (0x01)</strong>: Feedback</li>
+        <li><strong>Priority 2 (0x02)</strong>: Engine Stop</li>
+        <li><strong>Priority 4 (0x03)</strong>: Engine/Accessory Commands</li>
+      </ul>
+
+      <h3>Command Categories</h3>
+
+      <table>
+        <tr>
+          <th>Range</th>
+          <th>Category</th>
+          <th>Example Commands</th>
+        </tr>
+        <tr>
+          <td>0x00</td>
+          <td>System</td>
+          <td>Stop (0x00), Go (0x01), Halt (0x02)</td>
+        </tr>
+        <tr>
+          <td>0x01-0x0A</td>
+          <td>Management</td>
+          <td>Speed (0x04), Direction (0x05), Function (0x06)</td>
+        </tr>
+        <tr>
+          <td>0x0B-0x0D</td>
+          <td>Accessory</td>
+          <td>Turnout control</td>
+        </tr>
+        <tr>
+          <td>0x18-0x1C</td>
+          <td>Software</td>
+          <td>PING (0x18), CAN BOOT (0x1B)</td>
+        </tr>
+        <tr>
+          <td>0x20-0x22</td>
+          <td>GUI</td>
+          <td>GUI commands</td>
+        </tr>
+        <tr>
+          <td>0x10-0x12</td>
+          <td>Feedback</td>
+          <td>S88 events (0x11)</td>
+        </tr>
+        <tr>
+          <td>0x30-0xFF</td>
+          <td>Automation</td>
+          <td>Automation commands</td>
+        </tr>
+      </table>
+
+      <h2>Benefits of the Refactoring</h2>
+
+      <h3>1. Separation of Concerns</h3>
+
+      <p>Protocol encoding/decoding is now completely isolated from:</p>
+      <ul>
+        <li><strong>Display logic</strong> (MarklinMon)</li>
+        <li><strong>Business logic</strong> (MarklinThrottle, MarklinTurnout)</li>
+        <li><strong>Message construction</strong> (MarklinMessage)</li>
+      </ul>
+
+      <h3>2. Improved Readability</h3>
+
+      <p>Compare the old vs. new approach:</p>
+
+      <pre>
+// OLD: Direct array access with magic indices
+int speed = m.getElement(9);
+speed = (speed &lt;&lt; 8) + m.getElement(10);
+
+// NEW: Named methods with clear intent
+int speed = (decoded.getDataByte(0) &lt;&lt; 8) + decoded.getDataByte(1);
+      </pre>
+
+      <h3>3. Enhanced Maintainability</h3>
+
+      <p>Protocol changes only require updates in one location (the codec), automatically affecting all consumers.</p>
+
+      <h3>4. Better Testability</h3>
+
+      <p>The codec has comprehensive unit tests (<code>MarklinCanCodecTest.java</code>) that verify:</p>
+      <ul>
+        <li>Encoding correctness for all message types</li>
+        <li>Decoding correctness for all message types</li>
+        <li>Round-trip consistency (encode &rarr; decode &rarr; same values)</li>
+        <li>Edge cases and error conditions</li>
+      </ul>
+
+      <h3>5. Reduced Error Risk</h3>
+
+      <p>Centralizing bit manipulation logic reduces the chance of:</p>
+      <ul>
+        <li>Off-by-one errors in array indexing</li>
+        <li>Incorrect bit shifting operations</li>
+        <li>Misaligned byte ordering</li>
+        <li>DLC calculation errors</li>
+      </ul>
+
+      <h3>6. Type Safety</h3>
+
+      <p><code>DecodedMessage</code> provides typed access to protocol fields instead of raw array indices:</p>
+
+      <pre>
+// OLD: Easy to mix up byte 9 vs byte 10
+int value = m.getElement(9);  // Which field is this?
+
+// NEW: Clear what field you're accessing
+int function = decoded.getDataByte(0);
+int state = decoded.getDataByte(1);
+      </pre>
+
+      <h2>Usage Examples</h2>
+
+      <h3>Decoding Messages (MarklinMon, MarklinThrottle, MarklinTurnout)</h3>
+
+      <pre>
+@Override
+public void reply(MarklinReply m) {
+    // Decode using convenience method
+    MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(m);
+
+    // Work with structured data
+    if (decoded.getCommand() == MarklinConstants.LOCOSPEED) {
+        int speed = (decoded.getDataByte(0) &lt;&lt; 8) + decoded.getDataByte(1);
+        processSpeed(speed);
+    }
+}
+      </pre>
+
+      <h3>Encoding Messages (MarklinMessage)</h3>
+
+      <pre>
+public static MarklinMessage setLocoSpeed(int addr, int speed) {
+    int[] encoded = MarklinCanCodec.builder()
+        .setCommand(MarklinConstants.LOCOSPEED)
+        .setAddress(addr)
+        .setData((speed &gt;&gt; 8) &amp; 0xff, speed &amp; 0xff)
+        .setDataLength(2)
+        .build();
+    return new MarklinMessage(encoded);
+}
+      </pre>
+
+      <h3>Display Logic (MarklinMon)</h3>
+
+      <pre>
+private static void appendCommand(MarklinCanCodec.DecodedMessage decoded, StringBuilder sb) {
+    sb.append(" Command: ");
+    if (decoded.getCommand() == MarklinConstants.LOCOSPEED) {
+        int speed = (decoded.getDataByte(0) &lt;&lt; 8) + decoded.getDataByte(1);
+        sb.append("Change of speed ").append(speed);
+    }
+    // ...
+}
+      </pre>
+
+      <h2>Related Classes</h2>
+
+      <h3>MarklinMessageFormatter</h3>
+
+      <p>The <a href="https://www.jmri.org/JavaDoc/doc/jmri/jmrix/marklin/MarklinMessageFormatter.html">MarklinMessageFormatter</a>
+      class provides human-readable formatting of MCAN messages for display in monitor tools and CLI applications.
+      It uses MarklinCanCodec for decoding and adds detailed hex/ASCII representation and friendly descriptions.</p>
+
+      <h3>MarklinDeviceIdentifier</h3>
+
+      <p>The <a href="https://www.jmri.org/JavaDoc/doc/jmri/jmrix/marklin/MarklinDeviceIdentifier.html">MarklinDeviceIdentifier</a>
+      class identifies M&auml;rklin device types (CS2, CS3, MS2, Gleisbox, etc.) from CAN protocol messages.
+      It parses SOFTWARE_VERSION and CONFIG_DATA_STREAM messages to extract device information.</p>
+
+      <h2>Performance Considerations</h2>
+
+      <p>The codec introduces minimal overhead:</p>
+
+      <ul>
+        <li><strong>Memory</strong>: One additional object allocation per decode (DecodedMessage)</li>
+        <li><strong>CPU</strong>: One array copy operation per decode</li>
+        <li><strong>Trade-off</strong>: Negligible performance cost for significant maintainability gain</li>
+      </ul>
+
+      <p>In the context of model railroad control systems where message rates are relatively low (typically
+      &lt; 1000 messages/second), this overhead is insignificant compared to network and hardware latency.</p>
+
+      <h2>Migration Status</h2>
+
+      <p>All existing MCAN protocol code has been migrated to use the codec:</p>
+
+      <ul>
+        <li><strong>MarklinMessage</strong>: All factory methods now use MessageBuilder</li>
+        <li><strong>MarklinMon</strong>: Display logic now uses DecodedMessage and MarklinMessageFormatter</li>
+        <li><strong>MarklinThrottle</strong>: Reply processing now uses DecodedMessage</li>
+        <li><strong>MarklinTurnout</strong>: Reply processing now uses DecodedMessage</li>
+      </ul>
+
+      <p>No API changes were made to public interfaces, so external code continues to work without modification.</p>
+
+      <h2>References</h2>
+
+      <ul>
+        <li><strong>Issue</strong>: <a href="https://github.com/JMRI/JMRI/issues/14104">#14104 - M&auml;rklin CAN Boot Protocol Fix</a></li>
+        <li><strong>Protocol Documentation</strong>:
+          <ul>
+            <li><a href="https://www.maerklin.de/fileadmin/media/produkte/CS2_can-protokoll_1-0.pdf">CS2 CAN Protocol 1.0</a></li>
+            <li><a href="https://streaming.maerklin.de/public-media/cs2/cs2CAN-Protokoll-2_0.pdf">CS2 CAN Protocol 2.0</a></li>
+          </ul>
+        </li>
+        <li><strong>Source Code</strong>:
+          <ul>
+            <li><code>java/src/jmri/jmrix/marklin/MarklinCanCodec.java</code></li>
+            <li><code>java/src/jmri/jmrix/marklin/MarklinMessageFormatter.java</code></li>
+            <li><code>java/src/jmri/jmrix/marklin/MarklinDeviceIdentifier.java</code></li>
+            <li><code>java/test/jmri/jmrix/marklin/MarklinCanCodecTest.java</code></li>
+          </ul>
+        </li>
+      </ul>
+
+      <!--#include virtual="/help/en/parts/Footer.shtml" -->
+    </div>
+    <!-- closes #mainContent-->
+  </div>
+  <!-- closes #mBody-->
+  <script src="/js/help.js"></script>
+</body>
+</html>
