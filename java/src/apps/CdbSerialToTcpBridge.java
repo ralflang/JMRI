@@ -1,4 +1,4 @@
-package jmri.jmrix.marklin.cdb.bridge;
+package apps;
 
 import com.fazecast.jSerialComm.SerialPort;
 import jmri.jmrix.marklin.MarklinMessageFormatter;
