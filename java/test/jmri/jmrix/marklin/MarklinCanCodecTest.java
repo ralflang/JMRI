@@ -16,7 +16,7 @@ public class MarklinCanCodecTest {
     public void testDecodeSystemGoCommand() {
         // System Go command
         int[] message = new int[]{
-            0x00, 0x00, 0x47, 0x11, 0x05,
+            0x00, 0x00, 0x47, 0x11, 0x01, // DLC: 1 data byte per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00,
             0x01, 0x00, 0x00, 0x00
         };
@@ -37,7 +37,7 @@ public class MarklinCanCodecTest {
     public void testDecodeLocoSpeedCommand() {
         // Loco speed command for DCC address 3, speed 500
         int[] message = new int[]{
-            0x00, 0x08, 0x47, 0x11, 0x06,
+            0x00, 0x08, 0x47, 0x11, 0x02, // DLC: 2 data bytes per CAN 2.0B spec
             0x00, 0x00, 0xC0, 0x03, // DCC address 3
             0x01, (byte) 0xF4, 0x00, 0x00  // speed 500 (0x01F4)
         };
@@ -56,7 +56,7 @@ public class MarklinCanCodecTest {
     public void testDecodeCanBootCommand() {
         // CAN BOOT command (0x1B)
         int[] message = new int[]{
-            0x00, 0x36, 0x47, 0x11, 0x04,
+            0x00, 0x36, 0x47, 0x11, 0x00, // DLC: 0 data bytes per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00
         };
@@ -73,7 +73,7 @@ public class MarklinCanCodecTest {
     public void testDecodeTurnoutCommand() {
         // Accessory command for DCC turnout 1, state closed (1), power on
         int[] message = new int[]{
-            0x00, 0x16, 0x47, 0x11, 0x06,
+            0x00, 0x16, 0x47, 0x11, 0x02, // DLC: 2 data bytes per CAN 2.0B spec
             0x00, 0x00, 0x38, 0x00, // DCC accessory address 0x3800
             0x01, 0x01, 0x00, 0x00
         };
@@ -102,7 +102,7 @@ public class MarklinCanCodecTest {
         assertEquals(0x00, encoded[1]); // Command low bits, not response
         assertEquals(MarklinConstants.HASHBYTE1, encoded[2]);
         assertEquals(MarklinConstants.HASHBYTE2, encoded[3]);
-        assertEquals(0x05, encoded[4]); // DLC: 4 address bytes + 1 data byte
+        assertEquals(0x01, encoded[4]); // DLC: 1 data byte per CAN 2.0B spec
         assertEquals(0x00, encoded[5]); // Address byte 1
         assertEquals(0x00, encoded[6]); // Address byte 2
         assertEquals(0x00, encoded[7]); // Address byte 3
@@ -140,7 +140,7 @@ public class MarklinCanCodecTest {
         assertEquals(13, encoded.length);
         assertEquals(0x00, encoded[0]);
         assertEquals(0x36, encoded[1]); // Command 0x1B encoded: (0x1B << 1) = 0x36
-        assertEquals(0x04, encoded[4]); // DLC: 4 address bytes + 0 data bytes
+        assertEquals(0x00, encoded[4]); // DLC: 0 data bytes per CAN 2.0B spec
     }
 
     @Test
@@ -178,14 +178,14 @@ public class MarklinCanCodecTest {
     public void testDecodeResponseFlag() {
         // Request message
         int[] request = new int[]{
-            0x00, 0x00, 0x47, 0x11, 0x05,
+            0x00, 0x00, 0x47, 0x11, 0x01, // DLC: 1 data byte per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00,
             0x01, 0x00, 0x00, 0x00
         };
 
         // Response message (bit 0 of byte 1 set)
         int[] response = new int[]{
-            0x00, 0x01, 0x47, 0x11, 0x05,
+            0x00, 0x01, 0x47, 0x11, 0x01, // DLC: 1 data byte per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00,
             0x01, 0x00, 0x00, 0x00
         };
@@ -196,16 +196,16 @@ public class MarklinCanCodecTest {
 
     @Test
     public void testCommandCategories() {
-        int[] systemMsg = new int[]{0x00, 0x00, 0x47, 0x11, 0x05, 0, 0, 0, 0, 0x01, 0, 0, 0};
+        int[] systemMsg = new int[]{0x00, 0x00, 0x47, 0x11, 0x01, 0, 0, 0, 0, 0x01, 0, 0, 0}; // DLC: 1 data byte
         assertEquals("SYSTEM", MarklinCanCodec.decode(systemMsg).getCommandCategory());
 
-        int[] locoMsg = new int[]{0x00, 0x08, 0x47, 0x11, 0x06, 0, 0, 0xC0, 3, 1, 0xF4, 0, 0};
+        int[] locoMsg = new int[]{0x00, 0x08, 0x47, 0x11, 0x02, 0, 0, 0xC0, 3, 1, 0xF4, 0, 0}; // DLC: 2 data bytes
         assertEquals("MANAGEMENT", MarklinCanCodec.decode(locoMsg).getCommandCategory());
 
-        int[] accMsg = new int[]{0x00, 0x16, 0x47, 0x11, 0x06, 0, 0, 0x38, 0, 1, 1, 0, 0};
+        int[] accMsg = new int[]{0x00, 0x16, 0x47, 0x11, 0x02, 0, 0, 0x38, 0, 1, 1, 0, 0}; // DLC: 2 data bytes
         assertEquals("ACCESSORY", MarklinCanCodec.decode(accMsg).getCommandCategory());
 
-        int[] bootMsg = new int[]{0x00, 0x36, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0};
+        int[] bootMsg = new int[]{0x00, 0x36, 0x47, 0x11, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}; // DLC: 0 data bytes
         assertEquals("SOFTWARE", MarklinCanCodec.decode(bootMsg).getCommandCategory());
     }
 
@@ -260,13 +260,13 @@ public class MarklinCanCodecTest {
     @Test
     public void testGetCommandCategoryAllCategories() {
         // Test all command categories from documentation
-        int[] guiMsg = new int[]{0x00, 0x40, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0};
+        int[] guiMsg = new int[]{0x00, 0x40, 0x47, 0x11, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}; // DLC: 0 data bytes
         assertEquals("GUI", MarklinCanCodec.decode(guiMsg).getCommandCategory());
 
-        int[] feedbackMsg = new int[]{0x00, 0x20, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0};
+        int[] feedbackMsg = new int[]{0x00, 0x20, 0x47, 0x11, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}; // DLC: 0 data bytes
         assertEquals("FEEDBACK", MarklinCanCodec.decode(feedbackMsg).getCommandCategory());
 
-        int[] automationMsg = new int[]{0x00, 0x60, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0};
+        int[] automationMsg = new int[]{0x00, 0x60, 0x47, 0x11, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}; // DLC: 0 data bytes
         assertEquals("AUTOMATION", MarklinCanCodec.decode(automationMsg).getCommandCategory());
     }
 
@@ -336,7 +336,7 @@ public class MarklinCanCodecTest {
     public void testGetDataByteOutOfBounds() {
         // Test that getDataByte returns 0 for out-of-bounds indices
         int[] message = new int[]{
-            0x00, 0x00, 0x47, 0x11, 0x05,
+            0x00, 0x00, 0x47, 0x11, 0x01, // DLC: 1 data byte per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00,
             0x01, 0x00, 0x00, 0x00
         };
@@ -361,7 +361,7 @@ public class MarklinCanCodecTest {
         assertEquals(4, decoded.getDataLength());
         assertEquals(0x01, decoded.getDataByte(0));
         assertEquals(0x04, decoded.getDataByte(3));
-        assertEquals(0x08, encoded[4]); // DLC = 4 address bytes + 4 data bytes
+        assertEquals(0x04, encoded[4]); // DLC: 4 data bytes per CAN 2.0B spec
     }
 
     @Test
@@ -396,19 +396,19 @@ public class MarklinCanCodecTest {
 
     @Test
     public void testDecodeDLCEdgeCases() {
-        // Test DLC edge cases: DLC < 4 (invalid - less than 4 address bytes)
-        int[] invalidDLC = new int[]{
-            0x00, 0x00, 0x47, 0x11, 0x02, // DLC = 2 (less than 4 address bytes)
+        // Test DLC edge cases: DLC = 2 (2 data bytes)
+        int[] twoByteDLC = new int[]{
+            0x00, 0x00, 0x47, 0x11, 0x02, // DLC: 2 data bytes per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00
         };
 
-        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(invalidDLC);
-        assertEquals(0, decoded.getDataLength()); // Should be clamped to 0
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(twoByteDLC);
+        assertEquals(2, decoded.getDataLength());
 
-        // Test valid max DLC = 8 (4 address + 4 data bytes)
+        // Test valid max DLC = 4 (4 data bytes in 13-byte message format)
         int[] validMaxDLC = new int[]{
-            0x00, 0x00, 0x47, 0x11, 0x08, // DLC = 8
+            0x00, 0x00, 0x47, 0x11, 0x04, // DLC: 4 data bytes per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00,
             0xAA, 0xBB, 0xCC, 0xDD
         };
@@ -422,7 +422,7 @@ public class MarklinCanCodecTest {
     @Test
     public void testGetCommandCategoryUnknown() {
         // Test command outside all known ranges
-        int[] unknownMsg = new int[]{0x1F, 0xFE, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0};
+        int[] unknownMsg = new int[]{0x1F, 0xFE, 0x47, 0x11, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}; // DLC: 0 data bytes
         assertEquals("UNKNOWN", MarklinCanCodec.decode(unknownMsg).getCommandCategory());
     }
 
@@ -431,7 +431,7 @@ public class MarklinCanCodecTest {
         // Test that codec accepts and decodes "alien" (unknown) commands
         // Command 0x15 is in gap between FEEDBACK (0x12) and SOFTWARE (0x18)
         int[] alienMsg = new int[]{
-            0x00, 0x2A, 0x47, 0x11, 0x05, // Command 0x15, encoded as (0x00 & 0x0F) << 7 | (0x2A >> 1)
+            0x00, 0x2A, 0x47, 0x11, 0x01, // Command 0x15, DLC: 1 data byte per CAN 2.0B spec
             0x00, 0x00, 0x00, 0x00,
             0xAA, 0x00, 0x00, 0x00
         };
@@ -473,19 +473,19 @@ public class MarklinCanCodecTest {
         // Test commands in gaps between defined ranges
 
         // Gap between ACCESSORY (0x0D) and FEEDBACK (0x10): commands 0x0E-0x0F
-        int[] gapMsg1 = new int[]{0x00, 0x1C, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x0E
+        int[] gapMsg1 = new int[]{0x00, 0x1C, 0x47, 0x11, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x0E, DLC: 0 data bytes
         assertEquals("UNKNOWN", MarklinCanCodec.decode(gapMsg1).getCommandCategory());
 
         // Gap between FEEDBACK (0x12) and SOFTWARE (0x18): commands 0x13-0x17
-        int[] gapMsg2 = new int[]{0x00, 0x26, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x13
+        int[] gapMsg2 = new int[]{0x00, 0x26, 0x47, 0x11, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x13, DLC: 0 data bytes
         assertEquals("UNKNOWN", MarklinCanCodec.decode(gapMsg2).getCommandCategory());
 
         // Gap between SOFTWARE (0x1C) and GUI (0x20): commands 0x1D-0x1F
-        int[] gapMsg3 = new int[]{0x00, 0x3A, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x1D
+        int[] gapMsg3 = new int[]{0x00, 0x3A, 0x47, 0x11, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x1D, DLC: 0 data bytes
         assertEquals("UNKNOWN", MarklinCanCodec.decode(gapMsg3).getCommandCategory());
 
         // Gap between GUI (0x22) and AUTOMATION (0x30): commands 0x23-0x2F
-        int[] gapMsg4 = new int[]{0x00, 0x46, 0x47, 0x11, 0x04, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x23
+        int[] gapMsg4 = new int[]{0x00, 0x46, 0x47, 0x11, 0x00, 0, 0, 0, 0, 0, 0, 0, 0}; // Command 0x23, DLC: 0 data bytes
         assertEquals("UNKNOWN", MarklinCanCodec.decode(gapMsg4).getCommandCategory());
     }
 
@@ -522,7 +522,7 @@ public class MarklinCanCodecTest {
             .build();
 
         assertEquals(13, encoded.length);
-        assertEquals(0x04, encoded[4]); // DLC = 4 address bytes + 0 data bytes
+        assertEquals(0x00, encoded[4]); // DLC: 0 data bytes per CAN 2.0B spec
 
         MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(encoded);
         assertEquals(0, decoded.getDataLength());

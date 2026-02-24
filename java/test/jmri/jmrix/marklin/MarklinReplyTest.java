@@ -148,7 +148,7 @@ public class MarklinReplyTest extends jmri.jmrix.AbstractMessageTestBase {
     public void testGetCommandConsistentWithCodec() {
         // Test that MarklinReply.getCommand() produces same result as MarklinCanCodec.decode()
         int[] message = new int[]{
-            0x00, 0x08, 0x47, 0x11, 0x06,
+            0x00, 0x08, 0x47, 0x11, 0x02, // DLC: 2 data bytes per CAN 2.0B spec
             0x00, 0x00, 0xC0, 0x03,
             0x01, 0xF4, 0x00, 0x00
         };
