@@ -139,8 +139,8 @@ public class MarklinSendBootActionTest {
         Assert.assertEquals("Element 2 (hash byte 1)", 0x47, bootMessage.getElement(2)); // MarklinConstants.HASHBYTE1
         Assert.assertEquals("Element 3 (hash byte 2)", 0x11, bootMessage.getElement(3)); // MarklinConstants.HASHBYTE2
 
-        // DLC should be 5
-        Assert.assertEquals("Element 4 (DLC)", 0x05, bootMessage.getElement(4));
+        // DLC should be 1 (1 data byte: 0x11)
+        Assert.assertEquals("Element 4 (DLC)", 0x01, bootMessage.getElement(4));
 
         // Elements 5-8 should be 0 (address bytes for broadcast)
         for (int i = 5; i <= 8; i++) {
