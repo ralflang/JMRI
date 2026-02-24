@@ -124,7 +124,7 @@ public class MarklinCanCodecTest {
         assertEquals(0x00, encoded[0] & 0xC0); // Priority 0
         assertEquals(0xC003,
             ((long)encoded[5] << 24) | ((long)encoded[6] << 16) |
-            ((long)encoded[7] << 8) | (long)encoded[8]);
+            ((long)encoded[7] << 8) | encoded[8]);
         assertEquals(0x01, encoded[9]); // Speed high byte
         assertEquals(0xF4, encoded[10]); // Speed low byte (500 = 0x01F4)
     }
