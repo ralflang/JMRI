@@ -63,17 +63,27 @@
       <img src="images/MarklinMenu416.png" width="251" height="74" class="floatRight" alt=
       "Menu"></p>
 
-      <h3 id="tools">JMRI Tools</h3>
+      <h3 id="tools">JMRI M&auml;rklin Tools</h3>
+
+      <h4>MCAN Serial-to-TCP Bridge</h4>
+      <p>The <a href="McanTcpBridge.shtml">MCAN TCP Bridge</a> is a standalone program that allows
+      multiple JMRI instances to share a single CC-Schnitte serial adapter over the network. It bridges
+      MCAN serial adapters to TCP/IP, enabling remote access and multiple concurrent connections.</p>
 
       <h4>Monitor Marklin Commands</h4>
       <img src="images/MarklinCommandMonitor.png" width="410" height="88" alt=
       "Command Monitor Tool">
+
       <h4>Send Marklin Commands</h4>
       <img src="images/MarklinCS2SendCommand.png" width="348" height="128" alt=
       "Send Packet Tool"><br>
       Enter a message as a hex string, starting with the prefix 0x e.g. <code>0x4467</code>. Press
       [Send] and wait for a reply from the CS2 connection to appear in the Reply field.
 
+      <h3 id="implementation">Implementation</h3>
+
+      <p>For information about the M&auml;rklin CAN protocol implementation in JMRI, see the
+      <a href="MarklinCanCodec.shtml">M&auml;rklin CAN Codec Library</a> page.</p>
 
       <h2 id="cdb">CdB CC-Schnitte 2</h2>
 
