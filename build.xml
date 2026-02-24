@@ -2089,6 +2089,21 @@
                 <include name="apps/McanTcpBridge.class"/>
                 <include name="apps/McanTcpBridge$*.class"/>
             </fileset>
+            <!-- Include required JMRI serial port wrapper classes -->
+            <fileset dir="${target}">
+                <include name="jmri/jmrix/SerialPort.class"/>
+                <include name="jmri/jmrix/SerialPort$*.class"/>
+                <include name="jmri/jmrix/SerialPortDataListener.class"/>
+                <include name="jmri/jmrix/SerialPortEvent.class"/>
+                <include name="jmri/jmrix/jserialcomm/JSerialPort.class"/>
+                <include name="jmri/jmrix/jserialcomm/JSerialPort$*.class"/>
+                <include name="jmri/jmrix/jserialcomm/JSerialPortEvent.class"/>
+                <include name="jmri/jmrix/AbstractSerialPortController.class"/>
+                <include name="jmri/jmrix/AbstractSerialPortController$*.class"/>
+                <include name="jmri/jmrix/AbstractPortController.class"/>
+                <include name="jmri/util/LoggingUtil.class"/>
+                <include name="jmri/util/SystemType.class"/>
+            </fileset>
             <!-- Include required JMRI Marklin classes -->
             <fileset dir="${target}">
                 <include name="jmri/jmrix/marklin/MarklinCanCodec.class"/>

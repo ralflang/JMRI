@@ -1,6 +1,8 @@
 package apps;
 
-import com.fazecast.jSerialComm.SerialPort;
+import jmri.jmrix.SerialPort;
+import jmri.jmrix.jserialcomm.JSerialPort;
+import jmri.jmrix.AbstractSerialPortController;
 import jmri.jmrix.marklin.MarklinMessageFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -337,12 +339,13 @@ public class McanTcpBridge {
         System.out.println("Available serial ports:");
         System.out.println();
 
-        SerialPort[] ports = SerialPort.getCommPorts();
-        if (ports.length == 0) {
+        java.util.Vector<String> portNames = JSerialPort.getActualPortNames();
+        if (portNames.isEmpty()) {
             System.out.println("  (none found)");
         } else {
-            for (SerialPort port : ports) {
-                System.out.println("  " + port.getSystemPortName());
+            for (String portName : portNames) {
+                JSerialPort port = JSerialPort.getPort(portName);
+                System.out.println("  " + portName);
                 System.out.println("    Description: " + port.getPortDescription());
                 System.out.println("    Location: " + port.getPortLocation());
                 System.out.println();
@@ -362,7 +365,7 @@ public class McanTcpBridge {
         private final String bindAddress; // null means bind to all interfaces
         private final int tcpPort;
         private final int baudRate;
-        private volatile SerialPort serialPort;
+        private volatile SerialPort serialPort;  // jmri.jmrix.SerialPort interface
         private volatile boolean serialPortConnected = false;
         private ServerSocket serverSocket;
         private final List<ClientHandler> clients = new CopyOnWriteArrayList<>();
@@ -410,30 +413,28 @@ public class McanTcpBridge {
             try {
                 log.info("[{}:{}] Attempting to open serial port", serialPortName, tcpPort);
 
-                serialPort = SerialPort.getCommPort(serialPortName);
+                // Open port via JSerialPort wrapper (pass null for systemPrefix)
+                serialPort = JSerialPort.activatePort(
+                    null,                        // systemPrefix (null for standalone apps)
+                    serialPortName,              // port name
+                    log,                         // logger
+                    1,                           // stop bits
+                    SerialPort.Parity.NONE       // parity
+                );
 
-                if (!serialPort.openPort()) {
+                if (serialPort == null) {
                     log.warn("[{}:{}] Serial port not available: {}", serialPortName, tcpPort, serialPortName);
                     serialPortConnected = false;
-                    serialPort = null;
                     return;
                 }
 
-                // Configure port for CC-Schnitte (third-party CanDigitalBahn device)
-                serialPort.setComPortParameters(
-                    baudRate,
-                    8, // data bits
-                    SerialPort.ONE_STOP_BIT,
-                    SerialPort.NO_PARITY
-                );
+                // Configure baud rate (activatePort doesn't set it)
+                serialPort.setBaudRate(baudRate);
 
-                serialPort.setComPortTimeouts(
-                    SerialPort.TIMEOUT_READ_BLOCKING,
-                    0,  // read timeout (0 = infinite)
-                    0   // write timeout
-                );
+                // Configure flow control using JMRI enum
+                serialPort.setFlowControl(AbstractSerialPortController.FlowControl.NONE);
 
-                serialPort.setFlowControl(SerialPort.FLOW_CONTROL_DISABLED);
+                // Set control signals
                 serialPort.setRTS();
                 serialPort.setDTR();
 
