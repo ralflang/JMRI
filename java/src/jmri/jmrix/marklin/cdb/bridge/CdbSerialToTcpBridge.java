@@ -257,6 +257,11 @@ public class CdbSerialToTcpBridge {
             log.error("Bridge interrupted", e);
             shutdown();
             System.exit(1);
+        } catch (java.io.IOException e) {
+            System.err.println("I/O Error: " + e.getMessage());
+            log.error("Failed to start bridge", e);
+            shutdown();
+            System.exit(1);
         }
     }
 
