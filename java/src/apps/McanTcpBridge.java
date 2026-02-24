@@ -666,7 +666,7 @@ public class McanTcpBridge {
                     rawData[i] = data[i] & 0xFF;
                 }
                 String message = MarklinMessageFormatter.formatRaw(rawData, null, true);
-                System.out.println(String.format("[%s] [TCP→Serial] %s", serialPortName, message));
+                log.info("[{}] [TCP→Serial] {}", serialPortName, message);
             }
 
             try {
@@ -704,7 +704,7 @@ public class McanTcpBridge {
                     rawData[i] = data[i] & 0xFF;
                 }
                 String message = MarklinMessageFormatter.formatRaw(rawData, null, true);
-                System.out.println(String.format("[%s] [Serial→TCP] %s", serialPortName, message));
+                log.info("[{}] [Serial→TCP] {}", serialPortName, message);
             }
 
             for (ClientHandler client : clients) {
