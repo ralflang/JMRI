@@ -18,12 +18,14 @@
 
       <p>The MCAN TCP Bridge is a standalone CLI program that bridges M&auml;rklin CAN (MCAN) serial
       adapters to TCP/IP, allowing JMRI's CS2 Ethernet adapter to connect to physical serial MCAN
-      devices over the network. This enables multiple computers to share a single CC-Schnitte USB adapter.</p>
+      devices over the network. This enables forwarding a single CC-Schnitte USB adapter to a remote computer or connecting multiple programs simultaneously.</p>
 
       <h2>Quick Start</h2>
 
       <ol>
-        <li><strong>Build:</strong>
+        <li><strong>Building the shared library version is included in JMRI's build pipeline:</strong>
+        </li>
+        <li><strong>Build the standalone version:</strong>
           <pre>ant mcan-tcp-bridge-jar</pre>
           Output: <code>dist/mcan-tcp-bridge.jar</code>
         </li>
@@ -34,12 +36,9 @@
 
         <li><strong>Start bridge:</strong>
           <pre>
-# Single device
+# Single device, default port 15731 on all network interfaces
 java -jar dist/mcan-tcp-bridge.jar --port COM3         # Windows
 java -jar dist/mcan-tcp-bridge.jar --port /dev/ttyUSB0 # Linux
-
-# Multiple devices
-java -jar dist/mcan-tcp-bridge.jar --port COM3,COM4,COM5
           </pre>
         </li>
 
@@ -85,24 +84,23 @@ java -jar dist/mcan-tcp-bridge.jar --port COM3,COM4,COM5
 
       <h2>Overview</h2>
 
-      <p>The bridge program creates a TCP server (default port 15731) that connects to one or more
-      MCAN serial adapters (such as the CC-Schnitte by CanDigitalBahn). Multiple JMRI instances can
-      then connect to the bridge as if it were a physical CS2 command station.</p>
+      <p>The bridge program creates one or multiple TCP servers that connect to one
+      MCAN serial adapter each (such as the CC-Schnitte by CanDigitalBahn). One or multiple clients can connect to each TCP server simultaneously.</p>
 
       <p>Key features include:</p>
       <ul>
         <li>Bidirectional serial ↔ TCP bridge with message broadcasting</li>
-        <li>Multiple TCP client support (concurrent JMRI instances)</li>
+        <li>Multiple TCP client support (i.e. JMRI and product support software)</li>
         <li>Multiple device support (bridge several adapters simultaneously)</li>
         <li>Hot-plug support with automatic reconnection when devices are unplugged/replugged</li>
         <li>Cross-platform support (Windows, Linux, macOS)</li>
-        <li>Real-time statistics and logging</li>
+        <li>Command monitor for debugging and logging MCAN messages in a human readable format</li>
       </ul>
 
       <h2>Requirements</h2>
 
       <ul>
-        <li>Java 11 or higher</li>
+        <li>Java 11 or higher - same as JMRI</li>
         <li>MCAN serial adapter (e.g., CC-Schnitte USB adapter)</li>
         <li>JMRI installation or standalone bridge JAR</li>
       </ul>
@@ -239,7 +237,7 @@ Examples:
       <p>The bridge supports USB hot-plugging without requiring a restart:</p>
 
       <ul>
-        <li><strong>Starting without devices</strong>: Bridge can start even if the MCAN adapter is not plugged in</li>
+        <li><strong>Starting without devices</strong>: Bridge can start even if the MCAN adapter is not plugged in or powered off</li>
         <li><strong>Unplugging during operation</strong>: Bridge continues running, TCP clients stay connected</li>
         <li><strong>Automatic reconnection</strong>: Bridge detects when device is replugged and reconnects within 5 seconds</li>
         <li><strong>Graceful degradation</strong>: TCP messages are accepted but discarded until device reconnects</li>
@@ -297,15 +295,70 @@ sudo systemctl status mcan-tcp-bridge
 
       <h3>Windows Service</h3>
 
-      <p>Use NSSM (Non-Sucking Service Manager):</p>
+      <p>Create a Windows service using PowerShell and native service infrastructure.</p>
+
+      <p><strong>Step 1:</strong> Create a wrapper script <code>C:\mcan-tcp-bridge\run-bridge.bat</code>:</p>
 
       <pre>
-nssm install McanTcpBridge "C:\Program Files\Java\jdk-11\bin\java.exe"
-nssm set McanTcpBridge AppParameters "-jar C:\mcan-tcp-bridge\mcan-tcp-bridge.jar --port COM3"
-nssm set McanTcpBridge AppDirectory "C:\mcan-tcp-bridge"
-nssm set McanTcpBridge Start SERVICE_AUTO_START
-nssm start McanTcpBridge
+@echo off
+cd /d C:\mcan-tcp-bridge
+"C:\Program Files\Java\jdk-11\bin\java.exe" -jar mcan-tcp-bridge.jar --port COM3
       </pre>
+
+      <p><strong>Step 2:</strong> Create the service using PowerShell (run as Administrator):</p>
+
+      <pre>
+# Create the service
+sc.exe create McanTcpBridge `
+  binPath= "C:\mcan-tcp-bridge\run-bridge.bat" `
+  DisplayName= "MCAN TCP Bridge Service" `
+  start= auto
+
+# Configure service description
+sc.exe description McanTcpBridge "Bridges MCAN serial adapters to TCP/IP for JMRI"
+
+# Start the service
+sc.exe start McanTcpBridge
+
+# Check service status
+sc.exe query McanTcpBridge
+      </pre>
+
+      <p><strong>Alternative:</strong> Use PowerShell script for service management:</p>
+
+      <pre>
+# Create service with New-Service cmdlet
+New-Service -Name "McanTcpBridge" `
+  -BinaryPathName "C:\mcan-tcp-bridge\run-bridge.bat" `
+  -DisplayName "MCAN TCP Bridge Service" `
+  -Description "Bridges MCAN serial adapters to TCP/IP for JMRI" `
+  -StartupType Automatic
+
+# Start the service
+Start-Service -Name "McanTcpBridge"
+
+# Check service status
+Get-Service -Name "McanTcpBridge"
+      </pre>
+
+      <p><strong>Service Management:</strong></p>
+
+      <pre>
+# Stop service
+sc.exe stop McanTcpBridge
+# or: Stop-Service -Name "McanTcpBridge"
+
+# Remove service
+sc.exe delete McanTcpBridge
+# or: Remove-Service -Name "McanTcpBridge"
+
+# View service logs (Event Viewer)
+Get-EventLog -LogName Application -Source "Service Control Manager" -Newest 20
+      </pre>
+
+      <p><strong>Note:</strong> For production use, consider using a proper service wrapper like
+      <a href="https://github.com/winsw/winsw">WinSW</a> which provides better logging and error handling
+      than batch file wrappers.</p>
 
       <h2>Troubleshooting</h2>
 
@@ -359,17 +412,18 @@ java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar mcan-tcp-bridge.jar --p
       <h2>Performance</h2>
 
       <ul>
-        <li><strong>Latency</strong>: &lt; 10ms typical bridge latency</li>
         <li><strong>Throughput</strong>: Supports full 500kbaud serial bandwidth</li>
         <li><strong>Clients</strong>: No hard limit, tested with 10+ concurrent clients</li>
-        <li><strong>CPU</strong>: &lt; 5% CPU usage on modern hardware</li>
         <li><strong>Memory</strong>: ~50MB RAM footprint</li>
       </ul>
 
-      <h2 id="virtual-ports">Helper Scripts</h2>
+      <h2 id="virtual-ports">Connect virtual serial ports to the bridge</h2>
 
-      <p>JMRI provides helper scripts for creating virtual serial ports to test the bridge without
-      physical hardware, or to allow serial-only software (e.g., programmer tools) to work alongside JMRI.</p>
+      <p>JMRI provides helper scripts for creating virtual serial ports which connect to the bridge.
+        The bridge contains code which avoids garbled messages when multiple clients attempt to send to the bus at the same time.
+        This allows to run both JMRI and product support software such as CanDigitalBahn's WeichenChef Configuration utility simultaneously and even through a wifi connection. Traditionally the configuration tool needs to run locally on the computer connecting to the CC-Schnitte adapter.
+        It would own the adapter exclusively and JMRI would need its own physical adapter. Because of hotplugging support, the bridge may run on a small dedicated computer such as a Raspberry Pi, and both JMRI and the configuration tool can connect to it remotely. Put your laptop or dispatcher desk at comfortable distance from your layout.
+      </p>
 
       <h3>Linux and macOS</h3>
 
@@ -394,7 +448,7 @@ java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar mcan-tcp-bridge.jar --p
 
       <p>These scripts enable serial software to share the CC-Schnitte adapter with JMRI via the bridge's
       message multiplexing. The bridge broadcasts serial data to all TCP clients (both JMRI and virtual port
-      connections), and any client can send commands to the serial port.</p>
+      connections), and any client can send commands to the serial port. The bridge takes care of buffering and avoiding write conflicts</p>
 
       <h2>Notes</h2>
 
