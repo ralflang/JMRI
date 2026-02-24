@@ -62,13 +62,20 @@ JMRI's CS2 network adapter to connect to physical CC-Schnitte devices over the n
 
 ## Building
 
-The bridge is built as part of JMRI by default. For standalone deployment, use the ant target.
+The bridge is built as part of JMRI by default. For standalone deployment, use ant or Maven targets.
 
 ### Build with JMRI (default)
 
+**Using Ant:**
 ```bash
 cd /path/to/JMRI
 ant compile
+```
+
+**Using Maven:**
+```bash
+cd /path/to/JMRI
+mvn compile
 ```
 
 The bridge compiles with all other JMRI applications.
@@ -77,15 +84,23 @@ The bridge compiles with all other JMRI applications.
 
 To create a self-contained JAR for deployment:
 
+**Using Ant:**
 ```bash
 cd /path/to/JMRI
 ant cdbbridge-jar
 ```
 
-This creates `dist/marklin-cdb-bridge.jar` - a standalone JAR with all dependencies embedded.
+**Using Maven:**
+```bash
+cd /path/to/JMRI
+mvn antrun:run -Danttarget=cdbbridge-jar
+```
+
+This creates `dist/marklin-cdb-bridge.jar` - a standalone JAR with all dependencies embedded (~3.2 MB).
 
 ### Run from JMRI Development Environment
 
+**Using Ant:**
 ```bash
 cd /path/to/JMRI
 ant cdbbridge

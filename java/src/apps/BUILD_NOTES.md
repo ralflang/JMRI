@@ -22,23 +22,30 @@ The bridge is built using ant targets in JMRI's main build.xml.
 
 **Normal JMRI build (includes bridge):**
 ```bash
+# Using Ant
 cd /path/to/JMRI
 ant compile
+
+# Using Maven
+mvn compile
 ```
 
 **Standalone JAR for deployment:**
 ```bash
-cd /path/to/JMRI
+# Using Ant
 ant cdbbridge-jar
+
+# Using Maven
+mvn antrun:run -Danttarget=cdbbridge-jar
 ```
 
 **Run from development environment:**
 ```bash
-cd /path/to/JMRI
+# Using Ant
 ant cdbbridge
 ```
 
-**Output:** `dist/marklin-cdb-bridge.jar` - Standalone fat JAR with all dependencies embedded (~5MB)
+**Output:** `dist/marklin-cdb-bridge.jar` - Standalone fat JAR with all dependencies embedded (~3.2 MB)
 
 ### Ant Target Implementation
 

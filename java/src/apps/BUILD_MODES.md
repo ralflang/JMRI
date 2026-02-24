@@ -8,22 +8,30 @@ The CC-Schnitte bridge is integrated into JMRI's standard build system via ant t
 
 ### 1. Normal JMRI Build (Default)
 
-**Command:**
+**Commands:**
 ```bash
+# Using Ant
 ant compile
+
+# Using Maven
+mvn compile
 ```
 
 The bridge is compiled automatically with all other JMRI applications. No separate build step needed.
 
 ### 2. Standalone JAR for Distribution
 
-**Command:**
+**Commands:**
 ```bash
+# Using Ant
 ant cdbbridge-jar
+
+# Using Maven
+mvn antrun:run -Danttarget=cdbbridge-jar
 ```
 
 **Output:**
-- `dist/marklin-cdb-bridge.jar` (~5 MB fat JAR)
+- `dist/marklin-cdb-bridge.jar` (~3.2 MB fat JAR)
 
 **Characteristics:**
 - ✅ Single self-contained file

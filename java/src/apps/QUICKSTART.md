@@ -5,12 +5,19 @@ manufactured by CanDigitalBahn (CDB). It is not a Märklin product.
 
 ## 1. Build
 
+**Using Ant:**
 ```bash
 cd /path/to/JMRI
 ant cdbbridge-jar
 ```
 
-**Output:** `dist/marklin-cdb-bridge.jar` (~5 MB standalone JAR)
+**Using Maven:**
+```bash
+cd /path/to/JMRI
+mvn antrun:run -Danttarget=cdbbridge-jar
+```
+
+**Output:** `dist/marklin-cdb-bridge.jar` (~3.2 MB standalone JAR)
 
 ## 2. Run
 
