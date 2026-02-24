@@ -3,12 +3,12 @@
 **Author**: Ralf Lang (ralf.lang@ralf-lang.de)
 **Copyright**: (C) 2026 JMRI Community
 
-This guide explains how to create a virtual COM/serial port that connects to the bridge's TCP server. This allows serial-only software (like CAN-Digital-Bahn programmer tools) to work alongside JMRI.
+This guide explains how to create a virtual COM/serial port that connects to the bridge's TCP server. This allows serial-only software (like MCAN programmer tools) to work alongside JMRI.
 
 ## Architecture
 
 ```
-Physical CC-Schnitte (COM3)
+Physical MCAN Adapter (COM3, e.g. CC-Schnitte)
          ↕
    Bridge (TCP :15731)
     ↕              ↕
@@ -48,7 +48,7 @@ sudo pacman -S socat
 #### 1. Start the Bridge
 
 ```bash
-java -jar marklin-cdb-bridge.jar --port /dev/ttyUSB0
+java -jar mcan-tcp-bridge.jar --port /dev/ttyUSB0
 ```
 
 The bridge listens on TCP port 15731 by default.
@@ -94,7 +94,7 @@ winget install --id=Eterlogic.com2tcp -e
 
 1. **Start the Bridge**:
    ```powershell
-   java -jar marklin-cdb-bridge.jar --port COM3
+   java -jar mcan-tcp-bridge.jar --port COM3
    ```
 
 2. **Create Virtual Port** (Using Helper Script):
@@ -129,7 +129,7 @@ winget install --id=Eterlogic.com2tcp -e
 
 1. **Start the Bridge**:
    ```powershell
-   java -jar marklin-cdb-bridge.jar --port COM3
+   java -jar mcan-tcp-bridge.jar --port COM3
    ```
 
 2. **Connect COM Port Pair to TCP** (Using Helper Script):
@@ -153,7 +153,7 @@ winget install --id=Eterlogic.com2tcp -e
 
 ### Linux/macOS: create-virtual-port.sh
 
-Location: `java/src/jmri/jmrix/marklin/cdb/bridge/create-virtual-port.sh`
+Location: `java/src/apps/create-virtual-port.sh`
 
 ```bash
 ./create-virtual-port.sh /dev/ttyVCOM0 localhost 15731
@@ -161,7 +161,7 @@ Location: `java/src/jmri/jmrix/marklin/cdb/bridge/create-virtual-port.sh`
 
 ### Windows (PowerShell): create-virtual-port.ps1
 
-Location: `java/src/jmri/jmrix/marklin/cdb/bridge/create-virtual-port.ps1`
+Location: `java/src/apps/create-virtual-port.ps1`
 
 ```powershell
 .\create-virtual-port.ps1 -VirtualPort COM99 -TcpHost localhost -TcpPort 15731

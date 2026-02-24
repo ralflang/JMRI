@@ -1,8 +1,8 @@
-# CC-Schnitte Bridge Build Options
+# MCAN Protocol Bridge Build Options
 
 ## Overview
 
-The CC-Schnitte bridge is integrated into JMRI's standard build system via ant targets.
+The MCAN Protocol bridge is integrated into JMRI's standard build system via ant targets.
 
 ## Build Commands
 
@@ -24,14 +24,14 @@ The bridge is compiled automatically with all other JMRI applications. No separa
 **Commands:**
 ```bash
 # Using Ant
-ant cdbbridge-jar
+ant mcan-tcp-bridge-jar
 
 # Using Maven
-mvn antrun:run -Danttarget=cdbbridge-jar
+mvn antrun:run -Danttarget=mcan-tcp-bridge-jar
 ```
 
 **Output:**
-- `dist/marklin-cdb-bridge.jar` (~3.2 MB fat JAR)
+- `dist/mcan-tcp-bridge.jar` (~3.2 MB fat JAR)
 
 **Characteristics:**
 - ✅ Single self-contained file
@@ -50,21 +50,21 @@ mvn antrun:run -Danttarget=cdbbridge-jar
 
 **Command:**
 ```bash
-ant cdbbridge
+ant mcan-tcp-bridge
 ```
 
 Runs the bridge with full JMRI classpath (useful for development and debugging).
 
 ## Technical Details
 
-### Ant Target: `cdbbridge`
+### Ant Target: `mcan-tcp-bridge`
 
 - Depends on `debug` (compiles all JMRI code)
 - Uses standard `-run-jmri-application` macro
-- Runs `apps.CdbSerialToTcpBridge` with full classpath
+- Runs `apps.McanTcpBridge` with full classpath
 - Follows same pattern as `panelpro`, `jmrifaceless`, etc.
 
-### Ant Target: `cdbbridge-jar`
+### Ant Target: `mcan-tcp-bridge-jar`
 
 **Implementation:**
 - Depends on `debug` (compiles all JMRI code)
@@ -75,14 +75,14 @@ Runs the bridge with full JMRI classpath (useful for development and debugging).
 
 **Manifest:**
 ```
-Main-Class: apps.CdbSerialToTcpBridge
-Implementation-Title: CC-Schnitte Serial-to-TCP Bridge
+Main-Class: apps.McanTcpBridge
+Implementation-Title: MCAN Protocol Serial To TCP Multiplexer Bridge
 Implementation-Version: ${release}
 Implementation-Vendor: JMRI
 ```
 
 **Included Classes:**
-- Bridge: `apps/CdbSerialToTcpBridge*.class`
+- Bridge: `apps/McanTcpBridge*.class`
 - JMRI Marklin: `jmri/jmrix/marklin/MarklinCanCodec*.class`, `MarklinConstants.class`, `MarklinMessageFormatter*.class`
 - jSerialComm: `com/fazecast/...`
 - Logging: `org/slf4j/...`, `org/apache/logging/...`
@@ -92,12 +92,12 @@ Implementation-Vendor: JMRI
 
 ```bash
 # Build standalone JAR
-ant cdbbridge-jar
+ant mcan-tcp-bridge-jar
 
 # Run standalone JAR
-java -jar dist/marklin-cdb-bridge.jar --port COM3
-java -jar dist/marklin-cdb-bridge.jar --port COM2,COM3:49999,COM4:50000
-java -jar dist/marklin-cdb-bridge.jar --help
+java -jar dist/mcan-tcp-bridge.jar --port COM3
+java -jar dist/mcan-tcp-bridge.jar --port COM2,COM3:49999,COM4:50000
+java -jar dist/mcan-tcp-bridge.jar --help
 ```
 
 ## Integration with JMRI Build System
@@ -109,7 +109,7 @@ The bridge follows JMRI's standard application patterns:
 | PanelPro | `ant panelpro` | N/A | GUI app, part of JMRI distribution |
 | DecoderPro | `ant decoderpro` | N/A | GUI app, part of JMRI distribution |
 | JmriFaceless | `ant jmrifaceless` | N/A | CLI app, part of JMRI distribution |
-| CdbBridge | `ant cdbbridge` | `ant cdbbridge-jar` | CLI tool, also standalone |
+| McanTcpBridge | `ant mcan-tcp-bridge` | `ant mcan-tcp-bridge-jar` | CLI tool, also standalone |
 
 The bridge is unique in providing a standalone JAR target because it's designed to be deployed independently from JMRI.
 

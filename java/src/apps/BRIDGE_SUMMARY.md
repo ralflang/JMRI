@@ -1,18 +1,18 @@
-# Märklin CC-Schnitte Serial-to-TCP Bridge - Summary
+# MCAN Protocol Serial-to-TCP Bridge - Summary
 
 **Created:** 2026-02-20
-**Updated:** 2026-02-24 (Integrated into JMRI build system)
-**Purpose:** Standalone CLI program to bridge Märklin CC-Schnitte serial adapter to TCP/IP
+**Updated:** 2026-02-24 (Integrated into JMRI build system, standardized naming)
+**Purpose:** Standalone CLI program to bridge MCAN (Märklin CAN) serial adapters to TCP/IP
 
 ---
 
 ## What Was Created
 
 ### 1. Main Program
-**File:** `java/src/apps/CdbSerialToTcpBridge.java`
+**File:** `java/src/apps/McanTcpBridge.java`
 
 A complete standalone Java program (867 lines) that:
-- Opens and configures serial port (COM/ttyUSB) for CC-Schnitte
+- Opens and configures serial port (COM/ttyUSB) for MCAN devices
 - Creates TCP server on port 15731 (standard Märklin CS2 port)
 - Bridges data bidirectionally between serial and TCP clients
 - Supports multiple simultaneous TCP clients (broadcasts serial data)
@@ -38,8 +38,8 @@ Complete user documentation including:
 **Integrated into:** `build.xml` (root)
 
 Ant targets:
-- `ant cdbbridge` - Run bridge from development environment
-- `ant cdbbridge-jar` - Create standalone fat JAR for distribution
+- `ant mcan-tcp-bridge` - Run bridge from development environment
+- `ant mcan-tcp-bridge-jar` - Create standalone fat JAR for distribution
 
 The bridge compiles automatically with normal JMRI builds (`ant compile`).
 
@@ -121,7 +121,7 @@ java -jar marklin-cdb-bridge.jar --port COM3
 Bridge on layout computer, JMRI on operator computer:
 ```bash
 # On layout computer
-java -jar marklin-cdb-bridge.jar --port /dev/ttyUSB0
+java -jar mcan-tcp-bridge.jar --port /dev/ttyUSB0
 
 # JMRI connects to 192.168.1.100:15731
 ```
@@ -137,10 +137,10 @@ Multiple JMRI instances monitoring the same layout:
 Run as system service for 24/7 operation:
 ```bash
 # Linux systemd service
-sudo systemctl start marklin-bridge
+sudo systemctl start mcan-tcp-bridge
 
 # Windows NSSM service
-net start MarklinBridge
+net start McanTcpBridge
 ```
 
 ---
@@ -158,13 +158,13 @@ Bridge compiles automatically with all other JMRI applications.
 
 **Create standalone JAR:**
 ```bash
-ant cdbbridge-jar
+ant mcan-tcp-bridge-jar
 ```
-Creates `dist/marklin-cdb-bridge.jar` (~5 MB fat JAR with all dependencies)
+Creates `dist/mcan-tcp-bridge.jar` (~5 MB fat JAR with all dependencies)
 
 **Run from development:**
 ```bash
-ant cdbbridge
+ant mcan-tcp-bridge
 ```
 Runs bridge with full JMRI classpath.
 
@@ -296,7 +296,7 @@ Possible additions (not implemented):
 
 ```
 java/src/apps/
-├── CdbSerialToTcpBridge.java         (867 lines - main program)
+├── McanTcpBridge.java                 (867 lines - main program)
 ├── README.md                          (comprehensive documentation)
 ├── BRIDGE_SUMMARY.md                  (this file)
 ├── BUILD_NOTES.md                     (build system details)

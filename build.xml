@@ -1386,11 +1386,11 @@
         </antcall>
     </target>
 
-    <target name="cdbbridge"
+    <target name="mcan-tcp-bridge"
             depends="debug"
-            description="build and run CC-Schnitte Serial-to-TCP Bridge">
+            description="build and run MCAN Protocol Serial-to-TCP Bridge">
         <antcall target="-run-jmri-application">
-            <param name="application.classname" value="apps.CdbSerialToTcpBridge"/>
+            <param name="application.classname" value="apps.McanTcpBridge"/>
         </antcall>
     </target>
 
@@ -2075,19 +2075,19 @@
         </jar>
     </target>
 
-    <target name="cdbbridge-jar"
-            description="create standalone CC-Schnitte bridge JAR with dependencies"
+    <target name="mcan-tcp-bridge-jar"
+            description="create standalone MCAN Protocol Serial-to-TCP Bridge JAR with dependencies"
             depends="debug">
-        <!-- Create standalone JAR for CC-Schnitte Serial-to-TCP Bridge -->
+        <!-- Create standalone JAR for MCAN Protocol Serial-to-TCP Bridge -->
         <mkdir dir="${dist}"/>
 
         <!-- Create JAR with bridge and required JMRI classes -->
-        <jar jarfile="${dist}/marklin-cdb-bridge.jar"
+        <jar jarfile="${dist}/mcan-tcp-bridge.jar"
              compress="true">
             <!-- Include bridge class -->
             <fileset dir="${target}">
-                <include name="apps/CdbSerialToTcpBridge.class"/>
-                <include name="apps/CdbSerialToTcpBridge$*.class"/>
+                <include name="apps/McanTcpBridge.class"/>
+                <include name="apps/McanTcpBridge$*.class"/>
             </fileset>
             <!-- Include required JMRI Marklin classes -->
             <fileset dir="${target}">
@@ -2104,21 +2104,21 @@
             <zipfileset src="${libdir}/log4j-core-2.25.3.jar" excludes="META-INF/*.SF,META-INF/*.RSA,META-INF/*.DSA"/>
             <zipfileset src="${libdir}/log4j-slf4j2-impl-2.25.3.jar" excludes="META-INF/*.SF,META-INF/*.RSA,META-INF/*.DSA"/>
             <manifest>
-                <attribute name="Main-Class" value="apps.CdbSerialToTcpBridge"/>
-                <attribute name="Implementation-Title" value="CC-Schnitte Serial-to-TCP Bridge"/>
+                <attribute name="Main-Class" value="apps.McanTcpBridge"/>
+                <attribute name="Implementation-Title" value="MCAN Protocol Serial To TCP Multiplexer Bridge"/>
                 <attribute name="Implementation-Version" value="${release}"/>
                 <attribute name="Implementation-Vendor" value="JMRI"/>
             </manifest>
         </jar>
 
         <echo message=""/>
-        <echo message="Standalone bridge JAR created: ${dist}/marklin-cdb-bridge.jar"/>
+        <echo message="Standalone bridge JAR created: ${dist}/mcan-tcp-bridge.jar"/>
         <echo message=""/>
         <echo message="Usage:"/>
-        <echo message="  Single device:    java -jar ${dist}/marklin-cdb-bridge.jar --port COM3"/>
-        <echo message="  Custom TCP port:  java -jar ${dist}/marklin-cdb-bridge.jar --port COM3:50000"/>
-        <echo message="  Multiple devices: java -jar ${dist}/marklin-cdb-bridge.jar --port COM2,COM3:49999,COM4:50000"/>
-        <echo message="  Help:             java -jar ${dist}/marklin-cdb-bridge.jar --help"/>
+        <echo message="  Single device:    java -jar ${dist}/mcan-tcp-bridge.jar --port COM3"/>
+        <echo message="  Custom TCP port:  java -jar ${dist}/mcan-tcp-bridge.jar --port COM3:50000"/>
+        <echo message="  Multiple devices: java -jar ${dist}/mcan-tcp-bridge.jar --port COM2,COM3:49999,COM4:50000"/>
+        <echo message="  Help:             java -jar ${dist}/mcan-tcp-bridge.jar --help"/>
         <echo message=""/>
     </target>
 

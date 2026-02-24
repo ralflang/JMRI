@@ -1,14 +1,14 @@
-# Hot-Plug Support for CC-Schnitte Devices
+# Hot-Plug Support for MCAN Serial Devices
 
 **Version:** 2026-02-20
 **Feature:** USB Device Hot-Plug Support
 
 ## Overview
 
-The CC-Schnitte bridge now supports hot-plugging of USB devices without crashing or
+The MCAN Protocol bridge now supports hot-plugging of USB devices without crashing or
 requiring a restart. This allows for:
 
-- **Starting without devices:** Bridge can start even if CC-Schnitte is not plugged in
+- **Starting without devices:** Bridge can start even if MCAN adapter is not plugged in
 - **Unplugging during operation:** Bridge continues running, TCP clients stay connected
 - **Automatic reconnection:** Bridge detects when device is replugged and reconnects
 - **Graceful degradation:** TCP messages are accepted but not forwarded until device reconnects
@@ -75,9 +75,9 @@ Each bridge instance runs three threads:
 ### Starting Without Device
 
 ```bash
-$ java -jar marklin-cdb-bridge.jar --port COM3
+$ java -jar mcan-tcp-bridge.jar --port COM3
 
-CC-Schnitte (CanDigitalBahn) Serial-to-TCP Bridge
+MCAN Protocol Serial To TCP Multiplexer Bridge
 ==================================================
 Configuration:
   Devices: 1
@@ -193,7 +193,7 @@ private static final int RECONNECT_DELAY_MS = 5000;
 
 **Debug logging:**
 ```bash
-java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar marklin-cdb-bridge.jar --port COM3
+java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar mcan-tcp-bridge.jar --port COM3
 ```
 
 Shows:

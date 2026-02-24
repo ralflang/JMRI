@@ -19,11 +19,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Standalone CLI program that bridges CanDigitalBahn CC-Schnitte serial adapters to TCP/IP.
+ * Standalone CLI program that bridges MCAN (Märklin CAN) serial adapters to TCP/IP.
  * <p>
- * The CC-Schnitte is a third-party USB/serial adapter for Märklin CAN systems, manufactured
- * by CanDigitalBahn (CDB). This bridge allows JMRI to connect to CC-Schnitte devices over
- * TCP/IP using the CS2 Ethernet protocol.
+ * This bridge creates a TCP multiplexer for MCAN protocol devices, allowing multiple JMRI
+ * instances and other software to connect simultaneously to serial MCAN adapters
+ * (such as CC-Schnitte by CanDigitalBahn) over TCP/IP using the CS2 Ethernet protocol.
  * <p>
  * Supports:
  * - Single or multiple serial devices simultaneously
@@ -35,11 +35,11 @@ import java.util.regex.Pattern;
  * Usage:
  * <pre>
  * # Single device
- * java -jar marklin-cdb-bridge.jar --port COM3
- * java -jar marklin-cdb-bridge.jar --port COM3:50000
+ * java -jar mcan-tcp-bridge.jar --port COM3
+ * java -jar mcan-tcp-bridge.jar --port COM3:50000
  *
  * # Multiple devices
- * java -jar marklin-cdb-bridge.jar --port COM2,COM3:49999,COM4:50000
+ * java -jar mcan-tcp-bridge.jar --port COM2,COM3:49999,COM4:50000
  * # COM2 gets default port 15731
  * # COM3 gets explicit port 49999
  * # COM4 gets explicit port 50000
@@ -48,9 +48,9 @@ import java.util.regex.Pattern;
  * @author Ralf Lang (ralf.lang@ralf-lang.de) Copyright (C) 2026
  * @see <a href="https://www.maerklin.de/fileadmin/media/produkte/CS2_can-protokoll_1-0.pdf">CS2 CAN Protocol</a>
  */
-public class CdbSerialToTcpBridge {
+public class McanTcpBridge {
 
-    private static final Logger log = LoggerFactory.getLogger(CdbSerialToTcpBridge.class);
+    private static final Logger log = LoggerFactory.getLogger(McanTcpBridge.class);
 
     // Default configuration
     private static final int DEFAULT_TCP_PORT = 15731; // Standard Märklin CS2 TCP port
@@ -147,9 +147,9 @@ public class CdbSerialToTcpBridge {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.dateTimeFormat", "yyyy-MM-dd HH:mm:ss");
 
-        System.out.println("CC-Schnitte (CanDigitalBahn) Serial-to-TCP Bridge");
-        System.out.println("==================================================");
-        System.out.println("Bridges CC-Schnitte adapters to Märklin CS2 TCP protocol");
+        System.out.println("MCAN Protocol Serial To TCP Multiplexer Bridge");
+        System.out.println("==============================================");
+        System.out.println("Bridges MCAN serial adapters to CS2 TCP protocol");
         System.out.println();
 
         // Parse command line arguments
@@ -242,7 +242,7 @@ public class CdbSerialToTcpBridge {
             }
 
             // Register shutdown hook
-            Runtime.getRuntime().addShutdownHook(new Thread(CdbSerialToTcpBridge::shutdown));
+            Runtime.getRuntime().addShutdownHook(new Thread(McanTcpBridge::shutdown));
 
             System.out.println();
             System.out.println("All bridges running. Press Ctrl+C to stop.");
@@ -283,7 +283,7 @@ public class CdbSerialToTcpBridge {
      * Print usage information.
      */
     private static void printUsage() {
-        System.out.println("Usage: java -jar marklin-cdb-bridge.jar --port <port_spec> [options]");
+        System.out.println("Usage: java -jar mcan-tcp-bridge.jar --port <port_spec> [options]");
         System.out.println();
         System.out.println("Port Specification:");
         System.out.println("  Single device:    --port COM3");
@@ -326,7 +326,7 @@ public class CdbSerialToTcpBridge {
         System.out.println("  To use serial-only software (e.g., programmer tools) alongside JMRI,");
         System.out.println("  you can create a virtual COM port that connects to the bridge's TCP server.");
         System.out.println();
-        System.out.println("  See: java/src/jmri/jmrix/marklin/cdb/bridge/README-VIRTUAL-PORTS.md");
+        System.out.println("  See: java/src/apps/README-VIRTUAL-PORTS.md");
         System.out.println();
     }
 

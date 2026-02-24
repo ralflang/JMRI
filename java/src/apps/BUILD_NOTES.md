@@ -1,7 +1,7 @@
-# Build Notes - CC-Schnitte Bridge
+# Build Notes - MCAN Protocol Bridge
 
-**Important:** CC-Schnitte is a third-party USB/serial adapter for Märklin CAN systems,
-manufactured by CanDigitalBahn (CDB). It is not a Märklin product.
+**Note:** This bridge supports MCAN (Märklin CAN) protocol serial adapters including
+CC-Schnitte by CanDigitalBahn (CDB), a third-party adapter for Märklin CAN systems.
 
 ## Build System
 
@@ -33,29 +33,29 @@ mvn compile
 **Standalone JAR for deployment:**
 ```bash
 # Using Ant
-ant cdbbridge-jar
+ant mcan-tcp-bridge-jar
 
 # Using Maven
-mvn antrun:run -Danttarget=cdbbridge-jar
+mvn antrun:run -Danttarget=mcan-tcp-bridge-jar
 ```
 
 **Run from development environment:**
 ```bash
 # Using Ant
-ant cdbbridge
+ant mcan-tcp-bridge
 ```
 
-**Output:** `dist/marklin-cdb-bridge.jar` - Standalone fat JAR with all dependencies embedded (~3.2 MB)
+**Output:** `dist/mcan-tcp-bridge.jar` - Standalone fat JAR with all dependencies embedded (~3.2 MB)
 
 ### Ant Target Implementation
 
-**`cdbbridge` target:**
+**`mcan-tcp-bridge` target:**
 - Depends on `debug` (compiles all JMRI code)
 - Uses `-run-jmri-application` macro
-- Runs `apps.CdbSerialToTcpBridge` with full JMRI classpath
+- Runs `apps.McanTcpBridge` with full JMRI classpath
 - Useful for development and debugging
 
-**`cdbbridge-jar` target:**
+**`mcan-tcp-bridge-jar` target:**
 - Depends on `debug` (compiles all JMRI code)
 - Creates standalone fat JAR in dist/ directory
 - Includes bridge classes and required JMRI Marklin protocol classes
@@ -66,24 +66,24 @@ ant cdbbridge
 
 ```bash
 # Test help
-java -jar dist/marklin-cdb-bridge.jar --help
+java -jar dist/mcan-tcp-bridge.jar --help
 
 # Test port listing
-java -jar dist/marklin-cdb-bridge.jar --list
+java -jar dist/mcan-tcp-bridge.jar --list
 
 # Test single device
-java -jar dist/marklin-cdb-bridge.jar --port COM3
+java -jar dist/mcan-tcp-bridge.jar --port COM3
 
 # Test multiple devices
-java -jar dist/marklin-cdb-bridge.jar --port COM2,COM3:49999,COM4
+java -jar dist/mcan-tcp-bridge.jar --port COM2,COM3:49999,COM4
 ```
 
 ## Implementation Consolidation
 
-**Previous:** Two implementations (CdbSerialToTcpBridge for single device, MultiDeviceBridge for multiple)
+**Previous:** Two implementations (McanTcpBridge for single device, MultiDeviceBridge for multiple)
 
 **Current:** Single unified implementation
-- CdbSerialToTcpBridge.java handles both use cases
+- McanTcpBridge.java handles both use cases
 - Multi-device support is the default implementation
 - Single-device is just a special case of multi-device with one port
 
@@ -117,7 +117,7 @@ java -jar dist/marklin-cdb-bridge.jar --port COM2,COM3:49999,COM4
 To distribute the bridge:
 
 1. Copy these files to target system:
-   - marklin-cdb-bridge.jar
+   - mcan-tcp-bridge.jar
    - jSerialComm-2.11.4.jar
    - slf4j-api-2.0.17.jar
    - log4j-slf4j2-impl-2.25.3.jar
@@ -126,7 +126,7 @@ To distribute the bridge:
 
 2. Keep all files in same directory
 
-3. Run with: `java -jar marklin-cdb-bridge.jar --port <port_spec>`
+3. Run with: `java -jar mcan-tcp-bridge.jar --port <port_spec>`
 
 ## Troubleshooting
 
