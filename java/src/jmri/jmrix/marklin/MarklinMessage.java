@@ -6,7 +6,7 @@ package jmri.jmrix.marklin;
  * The {@link MarklinReply} class handles the response from the command station.
  * Packages of length 13 are interpreted as can-bus packages:
  * 4 bytes Can-bus-ID (BigEndian or network order),
- * 1-byte length and 
+ * 1-byte length and
  * 8 bytes of data, if necessary with null bytes to fill in.
  * <p>
  * The message ID is divided into the areas of lower priority (priority),
@@ -19,6 +19,8 @@ package jmri.jmrix.marklin;
  * DLC - 4bit (ie CAN message length)
  * CAN message 8 BYTES
  * Can Message Bytes 0 to 3 are the address bytes, with byte 0 High, byte 3 low
+ * <p>
+ * This class now leverages {@link MarklinCanCodec} for message encoding.
  * @author Kevin Dickerson Copyright (C) 2001, 2008
  */
 public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
@@ -60,27 +62,23 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
 
     // static methods to return a formatted message
     public static MarklinMessage getEnableMain() {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, MarklinConstants.SYSCOMMANDSTART & 0xFF);
-        m.setElement(1, 0x00 & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x05 & 0xFF); // DLC = 5 (five data bytes)
-        // Elements 5-8: Address bytes (0x00 for global command)
-        m.setElement(9, MarklinConstants.CMDGOSYS & 0xFF); // Data byte 0: Turn main on (0x01)
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.SYSCOMMANDSTART)
+            .setAddress(0x00) // Broadcast
+            .setData(MarklinConstants.CMDGOSYS)
+            .setDataLength(1)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage getKillMain() {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, MarklinConstants.SYSCOMMANDSTART & 0xFF);
-        m.setElement(1, 0x00 & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x05 & 0xFF); // DLC = 5 (five data bytes)
-        // Elements 5-8: Address bytes (0x00 for global command)
-        m.setElement(9, MarklinConstants.CMDSTOPSYS & 0xFF); // Data byte 0: Turn main off (0x00)
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.SYSCOMMANDSTART)
+            .setAddress(0x00) // Broadcast
+            .setData(MarklinConstants.CMDSTOPSYS)
+            .setDataLength(1)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     /**
@@ -102,16 +100,12 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
      * @see #getCanBootloaderMode()
      */
     public static MarklinMessage getCanBoot() {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (0x1B >> 7) & 0xFF);  // Command 0x1B high bits (encodes to 0x00)
-        m.setElement(1, (0x1B << 1) & 0xFF);  // Command 0x1B low bits (encodes to 0x36)
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x05 & 0xFF); // DLC = 5 (five data bytes)
-        // Elements 5-8: Address bytes (0x00 for broadcast)
-        m.setElement(9, 0x11 & 0xFF); // Data byte 0: Magic value 0x11 to activate Gleisbox
-        // Elements 10-12 remain as 0x00 (initialized in constructor)
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.CMDCANBOOT)
+            .setAddress(0x00)
+            .setData(0x11) // Magic value to activate Gleisbox
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     /**
@@ -136,168 +130,110 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
      * @see #getCanBoot()
      */
     public static MarklinMessage getCanBootloaderMode() {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (0x1B >> 7) & 0xFF);  // Command 0x1B high bits (encodes to 0x00)
-        m.setElement(1, (0x1B << 1) & 0xFF);  // Command 0x1B low bits (encodes to 0x36)
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x00 & 0xFF); // DLC = 0 (no data bytes - bootloader invocation)
-        // Elements 5-12 remain as 0x00 (initialized in constructor)
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.CMDCANBOOT)
+            .setAddress(0x00)
+            // No setData call - DLC will be 0 (no data bytes, bootloader invocation)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     //static public MarklinMessage get
     public static MarklinMessage getSetTurnout(int addr, int state, int power) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (MarklinConstants.ACCCOMMANDSTART >> 7) & 0xFF);
-        m.setElement(1, (MarklinConstants.ACCCOMMANDSTART << 1) & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x06 & 0xFF); // DLC = 6 (six data bytes)
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (addr >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (addr >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (addr >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (addr) & 0xFF);
-        m.setElement(9, state & 0xff);
-        m.setElement(10, power & 0xff);
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.ACCCOMMANDSTART)
+            .setAddress(addr)
+            .setData(state, power)
+            .setDataLength(2)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage getQryLocoSpeed(int addr) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (MarklinConstants.LOCOSPEED >> 7) & 0xFF);
-        m.setElement(1, (MarklinConstants.LOCOSPEED << 1) & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x04 & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (addr >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (addr >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (addr >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (addr) & 0xFF);
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.LOCOSPEED)
+            .setAddress(addr)
+            .setDataLength(0)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage setLocoSpeed(int addr, int speed) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (MarklinConstants.LOCOSPEED >> 7) & 0xFF);
-        m.setElement(1, (MarklinConstants.LOCOSPEED << 1) & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x06 & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (addr >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (addr >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (addr >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (addr) & 0xFF);
-        m.setElement(9, (speed >> 8) & 0xff);
-        m.setElement(10, speed & 0xff);
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.LOCOSPEED)
+            .setAddress(addr)
+            .setData((speed >> 8) & 0xff, speed & 0xff)
+            .setDataLength(2)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage setLocoEmergencyStop(int addr) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, MarklinConstants.SYSCOMMANDSTART & 0xFF);
-        m.setElement(1, 0x00 & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x05 & 0xFF); // DLC = 5 (five data bytes)
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (addr >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (addr >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (addr >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (addr) & 0xFF);
-        m.setElement(9, MarklinConstants.LOCOEMERGENCYSTOP & 0xFF);
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.LOCOEMERGENCYSTOP)
+            .setAddress(addr)
+            .setDataLength(0)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage setLocoSpeedSteps(int addr, int step) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, MarklinConstants.SYSCOMMANDSTART & 0xFF);
-        m.setElement(1, 0x00 & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x05 & 0xFF); // DLC = 5 (five data bytes)
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (addr >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (addr >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (addr >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (addr) & 0xFF);
-        m.setElement(9, 0x05 & 0xFF);
-        m.setElement(10, step & 0xFF);
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.SYSCOMMANDSTART)
+            .setAddress(addr)
+            .setData(0x05, step)
+            .setDataLength(2)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage getQryLocoDirection(int addr) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (MarklinConstants.LOCODIRECTION >> 7) & 0xFF);
-        m.setElement(1, (MarklinConstants.LOCODIRECTION << 1) & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x04 & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (addr >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (addr >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (addr >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (addr) & 0xFF);
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.LOCODIRECTION)
+            .setAddress(addr)
+            .setDataLength(0)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage setLocoDirection(int addr, int dir) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (MarklinConstants.LOCODIRECTION >> 7) & 0xFF);
-        m.setElement(1, (MarklinConstants.LOCODIRECTION << 1) & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x05 & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (addr >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (addr >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (addr >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (addr) & 0xFF);
-        m.setElement(9, dir & 0xff);
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.LOCODIRECTION)
+            .setAddress(addr)
+            .setData(dir)
+            .setDataLength(1)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage getQryLocoFunction(int addr, int funct) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (MarklinConstants.LOCOFUNCTION >> 7) & 0xFF);
-        m.setElement(1, (MarklinConstants.LOCOFUNCTION << 1) & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x05 & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (addr >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (addr >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (addr >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (addr) & 0xFF);
-        m.setElement(9, (funct) & 0xFF);
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.LOCOFUNCTION)
+            .setAddress(addr)
+            .setData(funct)
+            .setDataLength(1)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage setLocoFunction(int addr, int funct, int state) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (MarklinConstants.LOCOFUNCTION >> 7) & 0xFF);
-        m.setElement(1, (MarklinConstants.LOCOFUNCTION << 1) & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x06 & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (addr >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (addr >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (addr >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (addr) & 0xFF);
-        m.setElement(9, funct & 0xff);
-        m.setElement(10, state & 0xff);
-        m.getAddress();
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.LOCOFUNCTION)
+            .setAddress(addr)
+            .setData(funct, state)
+            .setDataLength(2)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public static MarklinMessage sensorPollMessage(int module) {
-        MarklinMessage m = new MarklinMessage();
-        m.setElement(0, (MarklinConstants.FEECOMMANDSTART >> 7) & 0xFF);
-        m.setElement(1, (MarklinConstants.FEECOMMANDSTART << 1) & 0xFF);
-        m.setElement(2, MarklinConstants.HASHBYTE1 & 0xFF);
-        m.setElement(3, MarklinConstants.HASHBYTE2 & 0xFF);
-        m.setElement(4, 0x05 & 0xFF); // DLC = 5 (five data bytes)
-        m.setElement(MarklinConstants.CANADDRESSBYTE1, (MY_UID >> 24) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE2, (MY_UID >> 16) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE3, (MY_UID >> 8) & 0xFF);
-        m.setElement(MarklinConstants.CANADDRESSBYTE4, (MY_UID) & 0xFF);
-        m.setElement(9, module & 0xFF);
-        return m;
+        int[] encoded = MarklinCanCodec.builder()
+            .setCommand(MarklinConstants.FEECOMMANDSTART)
+            .setAddress(MY_UID)
+            .setData(module)
+            .setDataLength(1)
+            .build();
+        return new MarklinMessage(encoded);
     }
 
     public long getAddress() {
