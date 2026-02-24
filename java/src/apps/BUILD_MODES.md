@@ -2,206 +2,110 @@
 
 ## Overview
 
-The CC-Schnitte bridge can be built in two modes:
+The CC-Schnitte bridge is integrated into JMRI's standard build system via ant targets.
 
-1. **Shared Libraries (Default)** - Small JAR with external dependencies
-2. **Standalone Fat JAR (Optional)** - Single self-contained JAR
+## Build Commands
 
-## Build Modes
-
-### 1. Shared Libraries Build (Default)
+### 1. Normal JMRI Build (Default)
 
 **Command:**
 ```bash
-./build.sh
+ant compile
 ```
 
-**Output:**
-- `marklin-cdb-bridge.jar` (14 KB)
-- `jSerialComm-2.11.4.jar` (866 KB)
-- `slf4j-api-2.0.17.jar` (69 KB)
-- `log4j-slf4j2-impl-2.25.3.jar` (30 KB)
-- `log4j-api-2.25.3.jar` (343 KB)
-- `log4j-core-2.25.3.jar` (2.0 MB)
+The bridge is compiled automatically with all other JMRI applications. No separate build step needed.
 
-**Total:** 6 files, 3.3 MB
-
-**Characteristics:**
-- ✅ Small bridge JAR (only 14 KB)
-- ✅ Shares libraries with JMRI installation
-- ✅ Standard JMRI build pattern
-- ✅ Easy to update individual libraries
-- ⚠️ Requires all 6 files in same directory
-
-**Use When:**
-- Building as part of JMRI distribution
-- Deploying alongside JMRI
-- Library versions may be updated independently
-
-### 2. Standalone Fat JAR Build (Opt-In)
+### 2. Standalone JAR for Distribution
 
 **Command:**
 ```bash
-./build.sh fatjar
+ant cdbbridge-jar
 ```
 
 **Output:**
-- `marklin-cdb-bridge-standalone.jar` (3.2 MB)
-
-**Total:** 1 file, 3.2 MB
+- `dist/marklin-cdb-bridge.jar` (~5 MB fat JAR)
 
 **Characteristics:**
 - ✅ Single self-contained file
-- ✅ No external dependencies
-- ✅ Easy distribution (one file)
-- ✅ Works anywhere with Java
-- ⚠️ Larger file size
-- ⚠️ Duplicate libraries if used with JMRI
+- ✅ All dependencies embedded (jSerialComm, slf4j, log4j)
+- ✅ No external files needed
+- ✅ Easy distribution
+- ✅ Works anywhere with Java 11+
 
 **Use When:**
 - Distributing to end users
 - Standalone deployment (no JMRI)
-- Simple installation preferred
 - Network/remote deployments
+- Simple installation preferred
 
-## Comparison
+### 3. Run from Development Environment
 
-| Feature | Shared Libraries | Fat JAR |
-|---------|-----------------|---------|
-| **Files** | 6 files | 1 file |
-| **Total Size** | 3.3 MB | 3.2 MB |
-| **Bridge JAR** | 14 KB | 3.2 MB |
-| **Dependencies** | External | Embedded |
-| **Distribution** | Copy 6 files | Copy 1 file |
-| **Updates** | Update individual libs | Rebuild entire JAR |
-| **JMRI Integration** | Standard pattern | Non-standard |
-| **Ease of Use** | Moderate | Very easy |
+**Command:**
+```bash
+ant cdbbridge
+```
+
+Runs the bridge with full JMRI classpath (useful for development and debugging).
 
 ## Technical Details
 
-### Shared Libraries Build
+### Ant Target: `cdbbridge`
+
+- Depends on `debug` (compiles all JMRI code)
+- Uses standard `-run-jmri-application` macro
+- Runs `apps.CdbSerialToTcpBridge` with full classpath
+- Follows same pattern as `panelpro`, `jmrifaceless`, etc.
+
+### Ant Target: `cdbbridge-jar`
 
 **Implementation:**
-- JAR manifest includes `Class-Path` entries
-- References dependency JARs by filename
-- Java loads dependencies from same directory
+- Depends on `debug` (compiles all JMRI code)
+- Creates fat JAR with embedded dependencies
+- Includes bridge and required JMRI Marklin protocol classes
+- Extracts and embeds: jSerialComm, slf4j-api, log4j (api/core/impl)
+- Excludes signature files (META-INF/*.SF, *.RSA, *.DSA)
 
 **Manifest:**
 ```
-Main-Class: jmri.jmrix.marklin.cdb.bridge.CdbSerialToTcpBridge
-Class-Path: jSerialComm-2.11.4.jar slf4j-api-2.0.17.jar log4j-slf4j2-impl-2.25.3.jar log4j-api-2.25.3.jar log4j-core-2.25.3.jar
+Main-Class: apps.CdbSerialToTcpBridge
+Implementation-Title: CC-Schnitte Serial-to-TCP Bridge
+Implementation-Version: ${release}
+Implementation-Vendor: JMRI
 ```
 
-### Fat JAR Build
-
-**Implementation:**
-- Extracts all dependency JARs
-- Merges all classes into single JAR
-- Excludes signature files (META-INF/*.SF, *.RSA, *.DSA)
-
-**Process:**
-1. Compile bridge classes
-2. Extract dependency JARs: `unzip -q -o <jar>`
-3. Create single JAR with all classes: `jar cfm ... -C . .`
-4. Result: Self-contained executable
-
-**Included:**
-- Bridge classes: `jmri/jmrix/marklin/cdb/bridge/*.class`
-- jSerialComm classes: `com/fazecast/...`
-- SLF4J classes: `org/slf4j/...`
-- Log4j classes: `org/apache/logging/...`
+**Included Classes:**
+- Bridge: `apps/CdbSerialToTcpBridge*.class`
+- JMRI Marklin: `jmri/jmrix/marklin/MarklinCanCodec*.class`, `MarklinConstants.class`, `MarklinMessageFormatter*.class`
+- jSerialComm: `com/fazecast/...`
+- Logging: `org/slf4j/...`, `org/apache/logging/...`
 - Platform natives: `Android/`, `Linux/`, `Windows/`, `OSX/`, etc.
 
 ## Usage
 
-Both build modes produce functionally identical JARs:
-
-**Shared Libraries:**
 ```bash
-java -jar marklin-cdb-bridge.jar --port COM3
-```
-*(Requires dependency JARs in same directory)*
+# Build standalone JAR
+ant cdbbridge-jar
 
-**Fat JAR:**
-```bash
-java -jar marklin-cdb-bridge-standalone.jar --port COM3
-```
-*(No other files needed)*
-
-## Recommendations
-
-### For JMRI Distribution
-**Use:** Shared Libraries (default)
-
-**Rationale:**
-- Follows JMRI build patterns
-- Efficient if JMRI already includes libraries
-- Easier to update individual components
-
-### For End Users
-**Use:** Fat JAR
-
-**Rationale:**
-- Single file to download
-- No installation complexity
-- Works anywhere
-
-### For Developers
-**Use:** Shared Libraries
-
-**Rationale:**
-- Faster build times
-- See library updates immediately
-- Standard development workflow
-
-## Build Script Integration
-
-The build script follows JMRI conventions:
-
-**Default behavior:**
-```bash
-./build.sh          # Shared libraries (JMRI standard)
+# Run standalone JAR
+java -jar dist/marklin-cdb-bridge.jar --port COM3
+java -jar dist/marklin-cdb-bridge.jar --port COM2,COM3:49999,COM4:50000
+java -jar dist/marklin-cdb-bridge.jar --help
 ```
 
-**Explicit opt-in:**
-```bash
-./build.sh fatjar   # Standalone fat JAR
-```
+## Integration with JMRI Build System
 
-This matches JMRI's pattern where:
-- Default targets follow standard practices
-- Special builds require explicit selection
-- No ambiguity about what gets built
+The bridge follows JMRI's standard application patterns:
 
-## Future Integration
+| Application | Run Target | Standalone JAR | Pattern |
+|-------------|------------|----------------|---------|
+| PanelPro | `ant panelpro` | N/A | GUI app, part of JMRI distribution |
+| DecoderPro | `ant decoderpro` | N/A | GUI app, part of JMRI distribution |
+| JmriFaceless | `ant jmrifaceless` | N/A | CLI app, part of JMRI distribution |
+| CdbBridge | `ant cdbbridge` | `ant cdbbridge-jar` | CLI tool, also standalone |
 
-### Potential Ant Target
-
-Could add to JMRI's `build.xml`:
-
-```xml
-<target name="cdb-bridge"
-        description="Build CC-Schnitte bridge (shared libs)">
-    <exec executable="bash">
-        <arg value="java/src/jmri/jmrix/marklin/cdb/bridge/build.sh"/>
-    </exec>
-</target>
-
-<target name="cdb-bridge-standalone"
-        description="Build CC-Schnitte bridge (fat JAR)">
-    <exec executable="bash">
-        <arg value="java/src/jmri/jmrix/marklin/cdb/bridge/build.sh"/>
-        <arg value="fatjar"/>
-    </exec>
-</target>
-```
-
-Then users could run:
-```bash
-ant cdb-bridge              # Default (shared libs)
-ant cdb-bridge-standalone   # Fat JAR
-```
+The bridge is unique in providing a standalone JAR target because it's designed to be deployed independently from JMRI.
 
 ---
 
-**Summary:** Default shared library build follows JMRI standards. Fat JAR is explicit opt-in for special use cases.
+**Build System Version:** 2026-02-24
+**Integration:** JMRI ant targets in build.xml

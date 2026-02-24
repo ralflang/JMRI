@@ -62,77 +62,36 @@ JMRI's CS2 network adapter to connect to physical CC-Schnitte devices over the n
 
 ## Building
 
-### Option 1: Build with JMRI ant
+The bridge is built as part of JMRI by default. For standalone deployment, use the ant target.
+
+### Build with JMRI (default)
 
 ```bash
 cd /path/to/JMRI
 ant compile
 ```
 
-### Option 2: Build standalone JAR
+The bridge compiles with all other JMRI applications.
 
-Create `build-bridge.xml`:
+### Build Standalone JAR
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project name="marklin-cdb-bridge" default="jar" basedir=".">
-    <property name="src.dir" value="java/src"/>
-    <property name="build.dir" value="target/bridge"/>
-    <property name="lib.dir" value="lib"/>
-    <property name="jar.name" value="marklin-cdb-bridge.jar"/>
+To create a self-contained JAR for deployment:
 
-    <path id="classpath">
-        <fileset dir="${lib.dir}">
-            <include name="jSerialComm-*.jar"/>
-            <include name="slf4j-api-*.jar"/>
-            <include name="slf4j-simple-*.jar"/>
-        </fileset>
-    </path>
-
-    <target name="init">
-        <mkdir dir="${build.dir}"/>
-    </target>
-
-    <target name="compile" depends="init">
-        <javac srcdir="${src.dir}"
-               destdir="${build.dir}"
-               includes="jmri/jmrix/marklin/cdb/bridge/**"
-               classpathref="classpath"
-               includeantruntime="false"
-               release="11"/>
-    </target>
-
-    <target name="jar" depends="compile">
-        <jar destfile="${jar.name}" basedir="${build.dir}">
-            <manifest>
-                <attribute name="Main-Class"
-                          value="jmri.jmrix.marklin.cdb.bridge.CdbSerialToTcpBridge"/>
-                <attribute name="Class-Path"
-                          value="jSerialComm-2.9.3.jar slf4j-api-1.7.36.jar slf4j-simple-1.7.36.jar"/>
-            </manifest>
-        </jar>
-
-        <!-- Copy dependencies to same directory -->
-        <copy todir=".">
-            <fileset dir="${lib.dir}">
-                <include name="jSerialComm-*.jar"/>
-                <include name="slf4j-api-*.jar"/>
-                <include name="slf4j-simple-*.jar"/>
-            </fileset>
-        </copy>
-    </target>
-
-    <target name="clean">
-        <delete dir="${build.dir}"/>
-        <delete file="${jar.name}"/>
-    </target>
-</project>
-```
-
-Then build:
 ```bash
-ant -f build-bridge.xml jar
+cd /path/to/JMRI
+ant cdbbridge-jar
 ```
+
+This creates `dist/marklin-cdb-bridge.jar` - a standalone JAR with all dependencies embedded.
+
+### Run from JMRI Development Environment
+
+```bash
+cd /path/to/JMRI
+ant cdbbridge
+```
+
+This runs the bridge using JMRI's full classpath (useful for development and debugging).
 
 ## Usage
 

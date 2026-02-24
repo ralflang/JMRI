@@ -6,23 +6,24 @@ manufactured by CanDigitalBahn (CDB). It is not a Märklin product.
 ## 1. Build
 
 ```bash
-cd java/src/jmri/jmrix/marklin/cdb/bridge
-./build.sh          # Unix/Linux/macOS
-build.bat           # Windows (if available)
+cd /path/to/JMRI
+ant cdbbridge-jar
 ```
+
+**Output:** `dist/marklin-cdb-bridge.jar` (~5 MB standalone JAR)
 
 ## 2. Run
 
 ```bash
 # List ports
-java -jar marklin-cdb-bridge.jar --list
+java -jar dist/marklin-cdb-bridge.jar --list
 
 # Single device
-java -jar marklin-cdb-bridge.jar --port COM3        # Windows
-java -jar marklin-cdb-bridge.jar --port /dev/ttyUSB0  # Linux
+java -jar dist/marklin-cdb-bridge.jar --port COM3        # Windows
+java -jar dist/marklin-cdb-bridge.jar --port /dev/ttyUSB0  # Linux
 
 # Multiple devices
-java -jar marklin-cdb-bridge.jar --port COM2,COM3,COM4
+java -jar dist/marklin-cdb-bridge.jar --port COM2,COM3,COM4
 ```
 
 ## 3. Configure JMRI
@@ -46,15 +47,16 @@ Your serial CC-Schnitte now appears as a network device to JMRI.
 ## Port Specification
 
 ```
-<serial>[:<tcp_port>][,<serial>[:<tcp_port>],...]
+<serial>[:<bind_addr>][:<tcp_port>][,<serial>[:<bind_addr>][:<tcp_port>],...]
 ```
 
 **Examples:**
 
 | Command | Result |
 |---------|--------|
-| `--port COM3` | COM3 → 15731 |
-| `--port COM3:50000` | COM3 → 50000 |
+| `--port COM3` | COM3 → 15731 (all interfaces) |
+| `--port COM3:50000` | COM3 → 50000 (all interfaces) |
+| `--port COM3:127.0.0.1:15731` | COM3 → localhost:15731 |
 | `--port COM2,COM3` | COM2 → 15731, COM3 → 15732 |
 | `--port COM2,COM3,COM4` | COM2 → 15731, COM3 → 15732, COM4 → 15733 |
 | `--port COM2,COM3:49999` | COM2 → 15731, COM3 → 49999 |
@@ -66,7 +68,7 @@ Your serial CC-Schnitte now appears as a network device to JMRI.
 
 ```bash
 # Debug logging
-java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar marklin-cdb-bridge.jar --port COM3
+java -Dorg.slf4j.simpleLogger.defaultLogLevel=DEBUG -jar dist/marklin-cdb-bridge.jar --port COM3
 
 # Linux permissions
 sudo usermod -a -G dialout $USER
@@ -80,4 +82,4 @@ sudo usermod -a -G dialout $USER
 - **CdbSerialToTcpBridge.java** - Bridge implementation (single + multi-device)
 - **README.md** - Full documentation
 - **BUILD_NOTES.md** - Build system details
-- **build.sh** - Build script
+- **BUILD_MODES.md** - Build options explained

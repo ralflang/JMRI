@@ -5,8 +5,7 @@ manufactured by CanDigitalBahn (CDB). It is not a Märklin product.
 
 ## Build System
 
-The `build.sh` script compiles the unified bridge implementation supporting both
-single and multiple devices.
+The bridge is built using ant targets in JMRI's main build.xml.
 
 ### Prerequisites
 
@@ -19,75 +18,58 @@ single and multiple devices.
 
 **Java:** Java 11 or higher
 
-### Build Process
+### Build Commands
 
+**Normal JMRI build (includes bridge):**
 ```bash
 cd /path/to/JMRI
-bash java/src/jmri/jmrix/marklin/cdb/bridge/build.sh
+ant compile
 ```
 
-**Output Files (in JMRI root):**
-- `marklin-cdb-bridge.jar` - Bridge implementation (13KB)
-- Dependency JARs (copied from lib/)
+**Standalone JAR for deployment:**
+```bash
+cd /path/to/JMRI
+ant cdbbridge-jar
+```
 
-### Build Script Features
+**Run from development environment:**
+```bash
+cd /path/to/JMRI
+ant cdbbridge
+```
 
-1. **Automatic JMRI_HOME Detection**
-   - Navigates up from bridge directory to find JMRI root
-   - Locates required libraries in lib/
+**Output:** `dist/marklin-cdb-bridge.jar` - Standalone fat JAR with all dependencies embedded (~5MB)
 
-2. **Cross-Platform Classpath**
-   - Detects Windows (msys/cygwin) vs Unix
-   - Uses semicolon separator on Windows, colon on Unix
+### Ant Target Implementation
 
-3. **Manifest Generation**
-   - Creates JAR manifest with Main-Class and Class-Path entries
-   - Dependencies referenced by filename (must be in same directory as JAR)
+**`cdbbridge` target:**
+- Depends on `debug` (compiles all JMRI code)
+- Uses `-run-jmri-application` macro
+- Runs `apps.CdbSerialToTcpBridge` with full JMRI classpath
+- Useful for development and debugging
 
-4. **Unified Implementation**
-   - Single CdbSerialToTcpBridge.java handles both single and multiple devices
-   - No separate implementations needed
-
-### Platform Notes
-
-**Windows (Git Bash/MSYS):**
-- Script detects Windows environment via `$OSTYPE`
-- Uses semicolon for classpath separator
-- Handles Windows paths correctly
-
-**Linux/macOS:**
-- Uses colon for classpath separator
-- Standard Unix paths
+**`cdbbridge-jar` target:**
+- Depends on `debug` (compiles all JMRI code)
+- Creates standalone fat JAR in dist/ directory
+- Includes bridge classes and required JMRI Marklin protocol classes
+- Embeds all runtime dependencies (jSerialComm, slf4j, log4j)
+- Single file deployment - no external dependencies needed
 
 ### Testing
 
 ```bash
 # Test help
-java -jar marklin-cdb-bridge.jar --help
+java -jar dist/marklin-cdb-bridge.jar --help
 
 # Test port listing
-java -jar marklin-cdb-bridge.jar --list
+java -jar dist/marklin-cdb-bridge.jar --list
 
 # Test single device
-java -jar marklin-cdb-bridge.jar --port COM3
+java -jar dist/marklin-cdb-bridge.jar --port COM3
 
 # Test multiple devices
-java -jar marklin-cdb-bridge.jar --port COM2,COM3:49999,COM4
+java -jar dist/marklin-cdb-bridge.jar --port COM2,COM3:49999,COM4
 ```
-
-### Known Warnings
-
-The following warnings during compilation are harmless:
-
-```
-Warnung: [options] Systemmodulpfad nicht zusammen mit -source 11 festgelegt
-```
-This warns that the module path isn't set when using `-source 11`. Can be ignored.
-
-```
-Hinweis: Die Annotationsverarbeitung ist aktiviert...
-```
-Annotation processing warning from Log4j. Can be suppressed with `-proc:none` if desired.
 
 ## Implementation Consolidation
 

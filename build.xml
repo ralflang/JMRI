@@ -1386,6 +1386,14 @@
         </antcall>
     </target>
 
+    <target name="cdbbridge"
+            depends="debug"
+            description="build and run CC-Schnitte Serial-to-TCP Bridge">
+        <antcall target="-run-jmri-application">
+            <param name="application.classname" value="apps.CdbSerialToTcpBridge"/>
+        </antcall>
+    </target>
+
     <!-- end of application startup targets -->
 
     <!-- ============================================================================= -->
@@ -2065,6 +2073,53 @@
             </section>
           </manifest>
         </jar>
+    </target>
+
+    <target name="cdbbridge-jar"
+            description="create standalone CC-Schnitte bridge JAR with dependencies"
+            depends="debug">
+        <!-- Create standalone JAR for CC-Schnitte Serial-to-TCP Bridge -->
+        <mkdir dir="${dist}"/>
+
+        <!-- Create JAR with bridge and required JMRI classes -->
+        <jar jarfile="${dist}/marklin-cdb-bridge.jar"
+             compress="true">
+            <!-- Include bridge class -->
+            <fileset dir="${target}">
+                <include name="apps/CdbSerialToTcpBridge.class"/>
+                <include name="apps/CdbSerialToTcpBridge$*.class"/>
+            </fileset>
+            <!-- Include required JMRI Marklin classes -->
+            <fileset dir="${target}">
+                <include name="jmri/jmrix/marklin/MarklinCanCodec.class"/>
+                <include name="jmri/jmrix/marklin/MarklinCanCodec$*.class"/>
+                <include name="jmri/jmrix/marklin/MarklinConstants.class"/>
+                <include name="jmri/jmrix/marklin/MarklinMessageFormatter.class"/>
+                <include name="jmri/jmrix/marklin/MarklinMessageFormatter$*.class"/>
+            </fileset>
+            <!-- Unpack runtime dependencies into JAR -->
+            <zipfileset src="${libdir}/jSerialComm-2.11.4.jar" excludes="META-INF/*.SF,META-INF/*.RSA,META-INF/*.DSA"/>
+            <zipfileset src="${libdir}/slf4j-api-2.0.17.jar" excludes="META-INF/*.SF,META-INF/*.RSA,META-INF/*.DSA"/>
+            <zipfileset src="${libdir}/log4j-api-2.25.3.jar" excludes="META-INF/*.SF,META-INF/*.RSA,META-INF/*.DSA"/>
+            <zipfileset src="${libdir}/log4j-core-2.25.3.jar" excludes="META-INF/*.SF,META-INF/*.RSA,META-INF/*.DSA"/>
+            <zipfileset src="${libdir}/log4j-slf4j2-impl-2.25.3.jar" excludes="META-INF/*.SF,META-INF/*.RSA,META-INF/*.DSA"/>
+            <manifest>
+                <attribute name="Main-Class" value="apps.CdbSerialToTcpBridge"/>
+                <attribute name="Implementation-Title" value="CC-Schnitte Serial-to-TCP Bridge"/>
+                <attribute name="Implementation-Version" value="${release}"/>
+                <attribute name="Implementation-Vendor" value="JMRI"/>
+            </manifest>
+        </jar>
+
+        <echo message=""/>
+        <echo message="Standalone bridge JAR created: ${dist}/marklin-cdb-bridge.jar"/>
+        <echo message=""/>
+        <echo message="Usage:"/>
+        <echo message="  Single device:    java -jar ${dist}/marklin-cdb-bridge.jar --port COM3"/>
+        <echo message="  Custom TCP port:  java -jar ${dist}/marklin-cdb-bridge.jar --port COM3:50000"/>
+        <echo message="  Multiple devices: java -jar ${dist}/marklin-cdb-bridge.jar --port COM2,COM3:49999,COM4:50000"/>
+        <echo message="  Help:             java -jar ${dist}/marklin-cdb-bridge.jar --help"/>
+        <echo message=""/>
     </target>
 
     <target name="native-image" depends="jar" description="create native launchers">

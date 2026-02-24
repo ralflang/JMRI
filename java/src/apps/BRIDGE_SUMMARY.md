@@ -1,6 +1,7 @@
 # Märklin CC-Schnitte Serial-to-TCP Bridge - Summary
 
 **Created:** 2026-02-20
+**Updated:** 2026-02-24 (Integrated into JMRI build system)
 **Purpose:** Standalone CLI program to bridge Märklin CC-Schnitte serial adapter to TCP/IP
 
 ---
@@ -8,17 +9,19 @@
 ## What Was Created
 
 ### 1. Main Program
-**File:** `java/src/jmri/jmrix/marklin/cdb/bridge/CdbSerialToTcpBridge.java`
+**File:** `java/src/apps/CdbSerialToTcpBridge.java`
 
-A complete standalone Java program (650+ lines) that:
+A complete standalone Java program (867 lines) that:
 - Opens and configures serial port (COM/ttyUSB) for CC-Schnitte
 - Creates TCP server on port 15731 (standard Märklin CS2 port)
 - Bridges data bidirectionally between serial and TCP clients
 - Supports multiple simultaneous TCP clients (broadcasts serial data)
+- Supports multiple serial devices with separate TCP ports
 - Provides logging, statistics, and graceful shutdown
+- Hot-plug support with automatic reconnection
 
 ### 2. Documentation
-**File:** `java/src/jmri/jmrix/marklin/cdb/bridge/README.md`
+**File:** `java/src/apps/README.md`
 
 Complete user documentation including:
 - Architecture diagram
@@ -29,17 +32,16 @@ Complete user documentation including:
 - Windows service configuration (NSSM)
 - Troubleshooting guide
 - Performance characteristics
+- Virtual COM port setup (for serial software integration)
 
-### 3. Build Scripts
-**Files:**
-- `java/src/jmri/jmrix/marklin/cdb/bridge/build.sh` (Unix/Linux/macOS)
-- `java/src/jmri/jmrix/marklin/cdb/bridge/build.bat` (Windows)
+### 3. Build System Integration
+**Integrated into:** `build.xml` (root)
 
-Standalone build scripts that:
-- Find required libraries (jSerialComm, SLF4J)
-- Compile the Java source
-- Package into executable JAR
-- Copy dependencies
+Ant targets:
+- `ant cdbbridge` - Run bridge from development environment
+- `ant cdbbridge-jar` - Create standalone fat JAR for distribution
+
+The bridge compiles automatically with normal JMRI builds (`ant compile`).
 
 ---
 
@@ -145,53 +147,44 @@ net start MarklinBridge
 
 ## Building the Bridge
 
-### Quick Build (using provided scripts)
+### Using JMRI Build System (Recommended)
 
-**Linux/macOS:**
-```bash
-cd /path/to/JMRI/java/src/jmri/jmrix/marklin/cdb/bridge
-./build.sh
-```
-
-**Windows:**
-```cmd
-cd \path\to\JMRI\java\src\jmri\jmrix\marklin\cdb\bridge
-build.bat
-```
-
-### Manual Build
-
+**Compile with JMRI:**
 ```bash
 cd /path/to/JMRI
-
-# Compile
-javac -d target/bridge \
-      -cp "lib/jSerialComm-2.9.3.jar:lib/slf4j-api-1.7.36.jar:lib/slf4j-simple-1.7.36.jar" \
-      java/src/jmri/jmrix/marklin/cdb/bridge/CdbSerialToTcpBridge.java
-
-# Create JAR
-cd target/bridge
-jar cfe ../../marklin-cdb-bridge.jar \
-    jmri.jmrix.marklin.cdb.bridge.CdbSerialToTcpBridge \
-    jmri/jmrix/marklin/cdb/bridge/*.class
+ant compile
 ```
+Bridge compiles automatically with all other JMRI applications.
+
+**Create standalone JAR:**
+```bash
+ant cdbbridge-jar
+```
+Creates `dist/marklin-cdb-bridge.jar` (~5 MB fat JAR with all dependencies)
+
+**Run from development:**
+```bash
+ant cdbbridge
+```
+Runs bridge with full JMRI classpath.
 
 ---
 
 ## Dependencies
 
-**Required Libraries:**
-1. **jSerialComm** (v2.9.3+)
+**Runtime Libraries (embedded in standalone JAR):**
+1. **jSerialComm** (v2.11.4)
    - Cross-platform serial port library
-   - Already in JMRI's lib/ directory
+   - From JMRI's lib/ directory
 
-2. **SLF4J API** (v1.7.36+)
+2. **SLF4J API** (v2.0.17)
    - Logging API
-   - Already in JMRI's lib/ directory
+   - From JMRI's lib/ directory
 
-3. **SLF4J Simple** (v1.7.36+)
-   - Simple console logger implementation
-   - Already in JMRI's lib/ directory
+3. **Log4j** (v2.25.3)
+   - log4j-api, log4j-core, log4j-slf4j2-impl
+   - JMRI's standard logging implementation
+   - From JMRI's lib/ directory
 
 **Java Version:** Java 11 or higher
 
@@ -302,12 +295,21 @@ Possible additions (not implemented):
 ## Files Created
 
 ```
-java/src/jmri/jmrix/marklin/cdb/bridge/
-├── CdbSerialToTcpBridge.java    (650 lines - main program)
-├── README.md                     (documentation)
-├── build.sh                      (Unix build script)
-└── build.bat                     (Windows build script)
+java/src/apps/
+├── CdbSerialToTcpBridge.java         (867 lines - main program)
+├── README.md                          (comprehensive documentation)
+├── BRIDGE_SUMMARY.md                  (this file)
+├── BUILD_NOTES.md                     (build system details)
+├── BUILD_MODES.md                     (build options explained)
+├── QUICKSTART.md                      (quick start guide)
+├── HOTPLUG.md                         (hot-plug support guide)
+├── README-VIRTUAL-PORTS.md            (virtual COM port setup)
+├── create-virtual-port.sh             (Linux virtual port script)
+├── create-virtual-port.ps1            (Windows virtual port script - socat)
+└── create-virtual-port-com0com.ps1    (Windows virtual port script - com0com)
 ```
+
+**Build system:** Integrated into `build.xml` (ant targets)
 
 ---
 
