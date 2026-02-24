@@ -251,9 +251,10 @@ public class CdbSerialToTcpBridge {
             // Keep main thread alive
             Thread.currentThread().join();
 
-        } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
-            log.error("Fatal error", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupted: " + e.getMessage());
+            log.error("Bridge interrupted", e);
             shutdown();
             System.exit(1);
         }
