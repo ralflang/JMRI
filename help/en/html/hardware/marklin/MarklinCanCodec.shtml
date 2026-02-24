@@ -30,7 +30,7 @@
 
       <h2>Problem Statement</h2>
 
-      <p>Prior to this refactoring, MCAN message encoding and decoding logic was scattered across multiple classes:</p>
+      <p>Traditionally, MCAN message encoding and decoding logic was scattered across multiple classes:</p>
 
       <ul>
         <li><strong>MarklinMessage</strong>: Manual bit manipulation for encoding messages</li>
@@ -39,38 +39,14 @@
         <li><strong>MarklinTurnout</strong>: Direct byte access for processing accessory replies</li>
       </ul>
 
-      <p>This approach had several issues:</p>
+      <p>This made maintenance difficult and risked introducing bugs and inconsistencies.</p>
 
       <ol>
+        <li><strong>No Separation of Concerns</strong>: Protocol logic was mixed with business logic. Reusing JMRI's MCAN implementation in other contexts was difficult.</li>
         <li><strong>Code Duplication</strong>: Similar decoding logic appeared in multiple places</li>
         <li><strong>Error-Prone</strong>: Manual bit shifting and array indexing increased bug risk</li>
-        <li><strong>Hard to Maintain</strong>: Protocol changes required updates across multiple files</li>
         <li><strong>Poor Readability</strong>: Magic numbers and array indices obscured intent</li>
-        <li><strong>No Separation of Concerns</strong>: Protocol logic was mixed with business logic</li>
       </ol>
-
-      <h3>Example of Old Approach</h3>
-
-      <pre>
-// Old decoding in MarklinThrottle
-if (m.getCommand() == MarklinConstants.LOCOSPEED) {
-    int speed = m.getElement(9);
-    speed = (speed &lt;&lt; 8) + (m.getElement(10));
-    // ...
-}
-
-// Old encoding in MarklinMessage
-public static MarklinMessage setLocoSpeed(int addr, int speed) {
-    MarklinMessage m = new MarklinMessage();
-    m.setElement(0, (MarklinConstants.LOCOSPEED &gt;&gt; 7) &amp; 0xFF);
-    m.setElement(1, (MarklinConstants.LOCOSPEED &lt;&lt; 1) &amp; 0xFF);
-    m.setElement(2, MarklinConstants.HASHBYTE1 &amp; 0xFF);
-    m.setElement(3, MarklinConstants.HASHBYTE2 &amp; 0xFF);
-    m.setElement(4, 0x06 &amp; 0xFF);
-    m.setElement(5, (addr &gt;&gt; 24) &amp; 0xFF);
-    // ... more manual byte manipulation
-}
-      </pre>
 
       <h2>Solution: MarklinCanCodec Library</h2>
 
@@ -263,15 +239,6 @@ int speed = (decoded.getDataByte(0) &lt;&lt; 8) + decoded.getDataByte(1);
 
       <p><code>DecodedMessage</code> provides typed access to protocol fields instead of raw array indices:</p>
 
-      <pre>
-// OLD: Easy to mix up byte 9 vs byte 10
-int value = m.getElement(9);  // Which field is this?
-
-// NEW: Clear what field you're accessing
-int function = decoded.getDataByte(0);
-int state = decoded.getDataByte(1);
-      </pre>
-
       <h2>Usage Examples</h2>
 
       <h3>Decoding Messages (MarklinMon, MarklinThrottle, MarklinTurnout)</h3>
@@ -356,6 +323,16 @@ private static void appendCommand(MarklinCanCodec.DecodedMessage decoded, String
       </ul>
 
       <p>No API changes were made to public interfaces, so external code continues to work without modification.</p>
+
+      <h2>Future Enhancements</h2>
+
+      <p>Possible future improvements to the codec:</p>
+
+      <ol>
+        <li><strong>Validation</strong>: Add message validation to detect malformed packets</li>
+        <li><strong>Builder Presets</strong>: Add factory methods for common message patterns</li>
+        <li><strong>Protocol Version Detection</strong>: Auto-detect protocol version from messages</li>
+      </ol>
 
       <h2>References</h2>
 
