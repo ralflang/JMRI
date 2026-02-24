@@ -143,6 +143,21 @@ public class FakeSerialPort implements SerialPort {
     }
 
     @Override
+    public boolean isOpen() {
+        return false;  // Fake port is never really "open"
+    }
+
+    @Override
+    public String getPortDescription() {
+        return "Fake Serial Port";
+    }
+
+    @Override
+    public String getPortLocation() {
+        return "Virtual";
+    }
+
+    @Override
     public void closePort() {
         // Do nothing
     }
