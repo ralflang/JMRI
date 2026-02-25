@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="utf-8">
   <meta name="generator" content="HTML Tidy for HTML5 for Apple macOS version 5.8.0">
   <title>JMRI Hardware Support - MCAN Serial-to-TCP Bridge</title>
   <meta name="author" content="JMRI Community">
@@ -58,27 +59,27 @@ java -jar dist/mcan-tcp-bridge.jar --port /dev/ttyUSB0 # Linux
         </tr>
         <tr>
           <td><code>--port COM3</code></td>
-          <td>COM3 → TCP 15731 (all interfaces)</td>
+          <td>COM3 &rarr; TCP 15731 (all interfaces)</td>
         </tr>
         <tr>
           <td><code>--port COM3:50000</code></td>
-          <td>COM3 → TCP 50000 (all interfaces)</td>
+          <td>COM3 &rarr; TCP 50000 (all interfaces)</td>
         </tr>
         <tr>
           <td><code>--port COM3:127.0.0.1:15731</code></td>
-          <td>COM3 → localhost:15731 only</td>
+          <td>COM3 &rarr; localhost:15731 only</td>
         </tr>
         <tr>
           <td><code>--port COM2,COM3</code></td>
-          <td>COM2 → 15731, COM3 → 15732</td>
+          <td>COM2 &rarr; 15731, COM3 &rarr; 15732</td>
         </tr>
         <tr>
           <td><code>--port COM2,COM3,COM4</code></td>
-          <td>COM2 → 15731, COM3 → 15732, COM4 → 15733</td>
+          <td>COM2 &rarr; 15731, COM3 &rarr; 15732, COM4 &rarr; 15733</td>
         </tr>
         <tr>
           <td><code>--port COM2:50000,COM3:50001</code></td>
-          <td>COM2 → 50000, COM3 → 50001</td>
+          <td>COM2 &rarr; 50000, COM3 &rarr; 50001</td>
         </tr>
       </table>
 
@@ -89,7 +90,7 @@ java -jar dist/mcan-tcp-bridge.jar --port /dev/ttyUSB0 # Linux
 
       <p>Key features include:</p>
       <ul>
-        <li>Bidirectional serial ↔ TCP bridge with message broadcasting</li>
+        <li>Bidirectional serial &harr; TCP bridge with message broadcasting</li>
         <li>Multiple TCP client support (i.e. JMRI and product support software)</li>
         <li>Multiple device support (bridge several adapters simultaneously)</li>
         <li>Hot-plug support with automatic reconnection when devices are unplugged/replugged</li>
@@ -178,9 +179,9 @@ java -jar mcan-tcp-bridge.jar --port COM3,COM4,COM5
 
       <p>This creates three TCP servers:</p>
       <ul>
-        <li>COM3 → TCP port 15731</li>
-        <li>COM4 → TCP port 15732</li>
-        <li>COM5 → TCP port 15733</li>
+        <li>COM3 &rarr; TCP port 15731</li>
+        <li>COM4 &rarr; TCP port 15732</li>
+        <li>COM5 &rarr; TCP port 15733</li>
       </ul>
 
       <p>You can also specify custom ports:</p>
@@ -217,7 +218,7 @@ Examples:
 
       <ol>
         <li>Start the bridge program</li>
-        <li>Open JMRI and go to <strong>Edit → Preferences</strong></li>
+        <li>Open JMRI and go to <strong>Edit &rarr; Preferences</strong></li>
         <li>Click the <strong>Connections</strong> tab</li>
         <li>Click <strong>+</strong> to add a new connection</li>
         <li>Select:
