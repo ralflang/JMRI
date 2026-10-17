@@ -186,7 +186,7 @@ public class MarklinCanCodec {
             message[8] = (int) (address & 0xFF);
 
             // Data bytes
-            for (int i = 0; i < dataLength && i < 8; i++) {
+            for (int i = 0; i < dataLength && i < 8 && (9 + i) < message.length; i++) {
                 message[9 + i] = data[i] & 0xFF;
             }
 
@@ -233,7 +233,7 @@ public class MarklinCanCodec {
 
         // Extract data bytes
         int[] data = new int[dataLength];
-        for (int i = 0; i < dataLength; i++) {
+        for (int i = 0; i < dataLength && (9 + i) < rawMessage.length; i++) {
             data[i] = rawMessage[9 + i] & 0xFF;
         }
 
@@ -249,8 +249,9 @@ public class MarklinCanCodec {
      * @throws IllegalArgumentException if message length is not 13 bytes
      */
     public static DecodedMessage decode(MarklinReply reply) {
+        int len = Math.min(13, reply.getNumDataElements());
         int[] rawData = new int[13];
-        for (int i = 0; i < 13; i++) {
+        for (int i = 0; i < len; i++) {
             rawData[i] = reply.getElement(i);
         }
         return decode(rawData);
@@ -265,8 +266,9 @@ public class MarklinCanCodec {
      * @throws IllegalArgumentException if message length is not 13 bytes
      */
     public static DecodedMessage decode(MarklinMessage message) {
+        int len = Math.min(13, message.getNumDataElements());
         int[] rawData = new int[13];
-        for (int i = 0; i < 13; i++) {
+        for (int i = 0; i < len; i++) {
             rawData[i] = message.getElement(i);
         }
         return decode(rawData);
