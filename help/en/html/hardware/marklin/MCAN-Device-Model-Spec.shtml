@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>JMRI Hardware Support: Improved MCAN Device Model Specification</title>
+    <!--#include virtual="/help/en/parts/Style.shtml" -->
+</head>
+<body>
+<!--#include virtual="/help/en/parts/Header.shtml" -->
+
+<div id="mainContent">
+
+<h1>MCAN Device Model Specification Analysis and Improvement Proposals</h1>
+
+<p>
+    <strong>Applies to Branch:</strong> <code>refactor/mcan-library-and-bridge-2</code><br>
+    <strong>Reference Issue:</strong> <a href="https://github.com/ralflang/JMRI/issues/3">ralflang/JMRI#3 (Spec: Represent MCAN Bus Devices as JMRI entities)</a><br>
+    <strong>Packages:</strong> <code>jmri.jmrix.marklin.*</code>
+</p>
+
+<h2>1. Overview & Evaluation Criteria</h2>
+<p>
+    This document analyzes the MCAN (Marklin CAN) device model specification proposed in issue #3 and outlines concrete architectural improvements based on three primary criteria:
+</p>
+<ol>
+    <li><strong>Fit with the rest of the JMRI codebase</strong> (integration with <code>Manager</code> and <code>NamedBean</code> interfaces, system connection memo lifecycle, system naming, and thread safety).</li>
+    <li><strong>Similarity and consistency with other command buses in JMRI</strong> (specifically BiDiB, CBUS, and OpenLCB/NMRANet node lifecycle models, parameter abstractions, and UI monitoring tables).</li>
+    <li><strong>Promoting reusability of the protocol and message codec layer outside a fully bootstrapped JMRI environment</strong> (standalone bridges such as <code>McanTcpBridge</code>, microservices, CLI applications, or embedded gateways).</li>
+</ol>
+
+<hr>
+
+<h2>2. Evaluation & Recommended Improvements</h2>
+
+<h3>2.1 Criteria 1: Fit with the Rest of the JMRI Codebase</h3>
+
+<h4>A. Proper Manager and NamedBean Hierarchy Integration</h4>
+<ul>
+    <li><strong>Issue in Spec:</strong> Section 3.2 defines <code>McanDevice</code> as a plain POJO, deferring <code>NamedBean</code> / <code>Manager</code> integration to an optional "Step 6".</li>
+    <li><strong>Improvement:</strong>
+        <code>McanDevice</code> should implement or extend <code>jmri.ProvidedSystemBean</code> / <code>jmri.implementation.AbstractNamedBean</code> from the outset.
+        Discovered nodes on hardware buses in JMRI are consistently managed via a standard <code>Manager&lt;McanDevice&gt;</code> (extending <code>jmri.managers.AbstractManager&lt;McanDevice&gt;</code>).
+    </li>
+    <li><strong>System Name Convention:</strong>
+        Use standard system name prefix notation: <code>M:dev:&lt;toSystemIdFragment()&gt;</code>.
+        For example:
+        <ul>
+            <li>Native MCAN device: <code>M:dev:uid-00112233</code></li>
+            <li>CdB CAN-digital-bahn device: <code>M:dev:cdb-22-03</code> (class 0x22, module 3)</li>
+        </ul>
+    </li>
+    <li><strong>System Connection Memo Lifecycle:</strong>
+        The <code>McanDeviceManager</code> instance must be registered with and owned by <code>MarklinSystemConnectionMemo</code> (via <code>memo.store(McanDeviceManager.class, deviceManager)</code> and accessed via <code>memo.get(McanDeviceManager.class)</code>), allowing multi-system support without static singletons.
+    </li>
+</ul>
+
+<h4>B. Threading Model and Event Dispatching</h4>
+<ul>
+    <li><strong>Issue in Spec:</strong> Uses <code>CompletableFuture</code> for asynchronous discovery and parameter operations without specifying thread handover rules.</li>
+    <li><strong>Improvement:</strong>
+        While <code>CompletableFuture</code> provides a clean async API for background transport operations, state changes (e.g. <code>PropertyChangeEvent</code> for device online/offline transitions, device creation, parameter updates) must strictly be dispatched on the Swing Event Dispatch Thread (EDT) or via <code>jmri.util.ThreadingUtil.runOnGUI()</code> to ensure thread safety across JMRI UI components.
+    </li>
+</ul>
+
+<hr>
+
+<h3>2.2 Criteria 2: Consistency with Other Command Buses (BiDiB, CBUS, OpenLCB)</h3>
+
+<h4>A. Node/Device State Machine Lifecycle</h4>
+<ul>
+    <li><strong>Bus Comparison:</strong>
+        <ul>
+            <li><strong>CBUS (<code>jmri.jmrix.can.cbus.node</code>):</strong> Tracks node states, parameters (NVs), events, and initialization sequences explicitly via <code>CbusNode</code>.</li>
+            <li><strong>BiDiB (<code>jmri.jmrix.bidib</code>):</strong> Uses <code>BiDiBNode</code> with explicit states (e.g. <code>OFFLINE</code>, <code>DISCOVERED</code>, <code>INITIALIZING</code>, <code>UP</code>).</li>
+            <li><strong>OpenLCB (<code>jmri.jmrix.openlcb</code>):</strong> Uses <code>MimicNodeStore</code> and explicit state tracking.</li>
+        </ul>
+    </li>
+    <li><strong>Improvement for MCAN:</strong>
+        Replace pure timestamp comparisons (<code>lastSeen</code>, <code>lastPingReply</code>) with an explicit <code>McanDeviceState</code> enum:
+        <pre><code>public enum McanDeviceState {
+    DISCOVERED,    // Ping reply received, identity established
+    INITIALIZING,  // Follow-up parameter reads in progress (e.g. CdB firmware/hardware version)
+    ONLINE,        // Fully initialized and actively answering
+    STALE,         // No response within configured threshold
+    OFFLINE        // Explicitly disconnected or lost
+}</code></pre>
+        Components can register standard <code>PropertyChangeListener</code>s to monitor state transitions.
+    </li>
+</ul>
+
+<h4>B. Unified Parameter &amp; Configuration Management</h4>
+<ul>
+    <li><strong>Bus Comparison:</strong> CBUS uses <code>CbusNodeParameterManager</code> and <code>CbusNodeNVManager</code> to abstract parameter reading/writing.</li>
+    <li><strong>Improvement for MCAN:</strong>
+        Abstract parameter read/write behind a unified <code>McanParameterManager</code> interface or delegate attached to <code>McanDevice</code>.
+        This provides a consistent parameter access mechanism regardless of whether the device uses CdB indexed parameters or Native CS2 configuration streams.
+    </li>
+</ul>
+
+<h4>C. Standard Device Table &amp; UI Components</h4>
+<ul>
+    <li><strong>Bus Comparison:</strong> CBUS provides <code>CbusNodeTableDataModel</code> and BiDiB provides <code>BiDiBTableModel</code> for node monitoring.</li>
+    <li><strong>Improvement for MCAN:</strong>
+        Provide <code>McanDeviceTableDataModel</code> in <code>jmri.jmrix.marklin.swing.devicetable</code> to display all known devices, their system names, family types, firmware versions, CAN classes/modules, and status.
+    </li>
+</ul>
+
+<hr>
+
+<h3>2.3 Criteria 3: Reusability Outside Fully Bootstrapped JMRI</h3>
+
+<h4>A. Layered Decoupling Architecture</h4>
+<p>
+    The branch <code>refactor/mcan-library-and-bridge-2</code> introduced standalone utilities like <code>apps.McanTcpBridge</code> and <code>MarklinCanCodec</code>. To enable third-party Java apps, lightweight gateways, or CLI tools to use the codec and protocol engine without pulling in heavy JMRI GUI/runtime dependencies, the codebase should be organized into two clear layers:
+</p>
+
+<ol>
+    <li>
+        <strong>Protocol &amp; Codec Layer (Zero JMRI Runtime Dependencies):</strong>
+        <ul>
+            <li><code>MarklinCanCodec</code> (Codec builder &amp; decoder)</li>
+            <li><code>CdBClassFilter</code> (Class-based pre-filter &amp; classification)</li>
+            <li><code>CdBMessage</code> (CdB configuration frame factory)</li>
+            <li><code>McanDeviceIdentity</code> (Native &amp; CdB immutable value objects)</li>
+            <li><code>CdBReadReply</code> (Read result payload object)</li>
+        </ul>
+        <em>Dependency rule:</em> This core layer depends only on standard Java SE (and optionally lightweight loggers), making it suitable for standalone distribution or microservices.
+    </li>
+    <li>
+        <strong>JMRI System Integration Layer:</strong>
+        <ul>
+            <li><code>McanDeviceManager</code> (Extends <code>AbstractManager&lt;McanDevice&gt;</code>)</li>
+            <li><code>McanDevice</code> (Extends <code>ProvidedSystemBean</code> / <code>AbstractNamedBean</code>)</li>
+            <li><code>MarklinTrafficController</code> (JMRI connection memo &amp; listener dispatching)</li>
+            <li><code>jmri.jmrix.marklin.swing.*</code> (UI panels and tables)</li>
+        </ul>
+    </li>
+</ol>
+
+<h4>B. Transport Abstraction (Functional Interfaces)</h4>
+<p>
+    Core protocol handlers and message factories should interact with transport layers through a simple functional interface rather than requiring a full <code>MarklinTrafficController</code> instance:
+</p>
+<pre><code>@FunctionalInterface
+public interface McanFrameSender {
+    /**
+     * Send a 13-byte raw MCAN frame over the transport.
+     * @param frame 13-element integer array representing raw bytes
+     */
+    void sendFrame(int[] frame);
+}</code></pre>
+<p>
+    This allows <code>CdBMessage</code> encoders and request/reply correlation engines to operate seamlessly in standalone TCP bridges (like <code>McanTcpBridge</code>), serial daemons, or unit test scaffolds.
+</p>
+
+<hr>
+
+<h2>3. Revised Implementation Roadmap</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+        <tr>
+            <th>Step</th>
+            <th>Component</th>
+            <th>Scope &amp; Responsibilities</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Step 1</strong></td>
+            <td><code>McanDeviceIdentity</code></td>
+            <td>
+                Immutable value objects (<code>Native</code> and <code>CdB</code> subclasses).
+                Computes CAN addresses/IDs, system ID fragments (<code>uid-XXXXXXXX</code> / <code>cdb-CC-MM</code>), human-readable strings, and equality semantics.
+                Zero JMRI dependencies.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Step 2</strong></td>
+            <td><code>CdBMessage</code> &amp; <code>McanFrameSender</code></td>
+            <td>
+                Static factories for CdB configuration frames (<code>ping</code>, <code>readParam</code>, <code>writeParam</code>, <code>reset</code>, <code>release</code>, <code>moduleSetup</code>).
+                Uses <code>MarklinCanCodec.builder()</code> and accepts functional <code>McanFrameSender</code> interfaces for pure transport decoupling.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Step 3</strong></td>
+            <td><code>McanDevice</code> &amp; <code>McanDeviceState</code></td>
+            <td>
+                Extends <code>ProvidedSystemBean</code> / <code>AbstractNamedBean</code>.
+                Tracks identity, state enum (<code>DISCOVERED</code>, <code>ONLINE</code>, <code>STALE</code>, etc.), hardware/firmware versions, and timestamps.
+                Fires EDT-safe <code>PropertyChangeEvent</code>s on state/metadata updates.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Step 4</strong></td>
+            <td><code>McanDeviceManager</code></td>
+            <td>
+                Implements <code>Manager&lt;McanDevice&gt;</code>, <code>MarklinListener</code>, and <code>CdBConfigListener</code>.
+                Managed by <code>MarklinSystemConnectionMemo</code>.
+                Handles active/passive discovery, bounded timeout task for read correlations, and EDT event dispatching.
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Step 5</strong></td>
+            <td><code>McanParameterManager</code></td>
+            <td>
+                Abstraction for reading and writing parameters (CdB indexed params and future CS2 config streams).
+                Handles post-discovery parameter enrichment (firmware/hardware version reads).
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Step 6</strong></td>
+            <td>Swing UI (<code>McanDeviceTableDataModel</code>)</td>
+            <td>
+                Provides visual monitoring and device management in <code>jmri.jmrix.marklin.swing.devicetable</code> aligned with CBUS and BiDiB table models.
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<!--#include virtual="/help/en/parts/Footer.shtml" -->
+</div>
+</body>
+</html>
