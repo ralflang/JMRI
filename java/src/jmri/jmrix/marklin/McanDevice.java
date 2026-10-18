@@ -17,12 +17,14 @@ public class McanDevice extends AbstractNamedBean {
     public static final String PROPERTY_DEVICE_STATE = "deviceState";
     public static final String PROPERTY_SOFTWARE_VERSION = "softwareVersion";
     public static final String PROPERTY_HARDWARE_VERSION = "hardwareVersion";
+    public static final String PROPERTY_FIRST_SEEN = "firstSeen";
     public static final String PROPERTY_LAST_SEEN = "lastSeen";
 
     private final McanDeviceIdentity identity;
     private McanDeviceState deviceState;
     private int softwareVersion = -1;
     private int hardwareVersion = -1;
+    private final Instant firstSeen;
     private Instant lastSeen;
 
     /**
@@ -35,8 +37,17 @@ public class McanDevice extends AbstractNamedBean {
         super(Objects.requireNonNull(identity, "identity cannot be null").getSystemName(systemPrefix));
         this.identity = identity;
         this.deviceState = McanDeviceState.DISCOVERED;
-        this.lastSeen = Instant.now();
+        this.firstSeen = Instant.now();
+        this.lastSeen = this.firstSeen;
         setUserName(identity.getDisplayName());
+    }
+
+    /**
+     * Get first time this device was seen active on the bus.
+     * @return timestamp
+     */
+    public synchronized Instant getFirstSeen() {
+        return firstSeen;
     }
 
     /**
