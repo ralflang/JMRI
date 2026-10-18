@@ -1,0 +1,171 @@
+package jmri.jmrix.marklin;
+
+import java.time.Instant;
+import java.util.Objects;
+import jmri.implementation.AbstractNamedBean;
+import jmri.util.ThreadingUtil;
+
+/**
+ * Represents an MCAN device (Native CS2/MS2 or CdB module) as a JMRI NamedBean entity.
+ * <p>
+ * Property changes (such as state updates or firmware version changes) are dispatched
+ * on the Swing EDT via {@link ThreadingUtil#runOnGUI(ThreadingUtil.ThreadAction)} for thread safety.
+ *
+ * @author Ralf Lang (ralf.lang@ralf-lang.de) */
+public class McanDevice extends AbstractNamedBean {
+
+    public static final String PROPERTY_DEVICE_STATE = "deviceState";
+    public static final String PROPERTY_SOFTWARE_VERSION = "softwareVersion";
+    public static final String PROPERTY_HARDWARE_VERSION = "hardwareVersion";
+    public static final String PROPERTY_FIRST_SEEN = "firstSeen";
+    public static final String PROPERTY_LAST_SEEN = "lastSeen";
+
+    private final McanDeviceIdentity identity;
+    private McanDeviceState deviceState;
+    private int softwareVersion = -1;
+    private int hardwareVersion = -1;
+    private final Instant firstSeen;
+    private Instant lastSeen;
+
+    /**
+     * Create an McanDevice bean using system prefix and identity.
+     *
+     * @param systemPrefix system prefix (e.g. "M")
+     * @param identity device identity (Native or CdB)
+     */
+    public McanDevice(String systemPrefix, McanDeviceIdentity identity) {
+        super(Objects.requireNonNull(identity, "identity cannot be null").getSystemName(systemPrefix));
+        this.identity = identity;
+        this.deviceState = McanDeviceState.DISCOVERED;
+        this.firstSeen = Instant.now();
+        this.lastSeen = this.firstSeen;
+        setUserName(identity.getDisplayName());
+    }
+
+    /**
+     * Get first time this device was seen active on the bus.
+     * @return timestamp
+     */
+    public synchronized Instant getFirstSeen() {
+        return firstSeen;
+    }
+
+    /**
+     * Get device identity.
+     * @return device identity
+     */
+    public McanDeviceIdentity getIdentity() {
+        return identity;
+    }
+
+    /**
+     * Get current device lifecycle state.
+     * @return device state
+     */
+    public synchronized McanDeviceState getDeviceState() {
+        return deviceState;
+    }
+
+    /**
+     * Set device lifecycle state, dispatching PropertyChangeEvent on EDT if changed.
+     * @param newState new device state
+     */
+    public void setDeviceState(McanDeviceState newState) {
+        Objects.requireNonNull(newState, "newState cannot be null");
+        McanDeviceState oldState;
+        synchronized (this) {
+            if (this.deviceState == newState) {
+                return;
+            }
+            oldState = this.deviceState;
+            this.deviceState = newState;
+        }
+        ThreadingUtil.runOnGUI(() -> firePropertyChange(PROPERTY_DEVICE_STATE, oldState, newState));
+    }
+
+    /**
+     * Get software version code, or -1 if unknown.
+     * @return software version
+     */
+    public synchronized int getSoftwareVersion() {
+        return softwareVersion;
+    }
+
+    /**
+     * Set software version, dispatching PropertyChangeEvent on EDT if changed.
+     * @param version software version code
+     */
+    public void setSoftwareVersion(int version) {
+        int oldVersion;
+        synchronized (this) {
+            if (this.softwareVersion == version) {
+                return;
+            }
+            oldVersion = this.softwareVersion;
+            this.softwareVersion = version;
+        }
+        ThreadingUtil.runOnGUI(() -> firePropertyChange(PROPERTY_SOFTWARE_VERSION, oldVersion, version));
+    }
+
+    /**
+     * Get hardware version code, or -1 if unknown.
+     * @return hardware version
+     */
+    public synchronized int getHardwareVersion() {
+        return hardwareVersion;
+    }
+
+    /**
+     * Set hardware version, dispatching PropertyChangeEvent on EDT if changed.
+     * @param version hardware version code
+     */
+    public void setHardwareVersion(int version) {
+        int oldVersion;
+        synchronized (this) {
+            if (this.hardwareVersion == version) {
+                return;
+            }
+            oldVersion = this.hardwareVersion;
+            this.hardwareVersion = version;
+        }
+        ThreadingUtil.runOnGUI(() -> firePropertyChange(PROPERTY_HARDWARE_VERSION, oldVersion, version));
+    }
+
+    /**
+     * Get last time this device was seen active on the bus.
+     * @return timestamp
+     */
+    public synchronized Instant getLastSeen() {
+        return lastSeen;
+    }
+
+    /**
+     * Touch device last seen timestamp to current time.
+     */
+    public void touch() {
+        Instant oldTime;
+        Instant newTime = Instant.now();
+        synchronized (this) {
+            oldTime = this.lastSeen;
+            this.lastSeen = newTime;
+        }
+        ThreadingUtil.runOnGUI(() -> firePropertyChange(PROPERTY_LAST_SEEN, oldTime, newTime));
+    }
+
+    @Override
+    public synchronized int getState() {
+        return deviceState.ordinal();
+    }
+
+    @Override
+    public void setState(int state) {
+        if (state >= 0 && state < McanDeviceState.values().length) {
+            setDeviceState(McanDeviceState.values()[state]);
+        }
+    }
+
+    @Override
+    public String getBeanType() {
+        return Bundle.getMessage("BeanNameMcanDevice");
+    }
+}
