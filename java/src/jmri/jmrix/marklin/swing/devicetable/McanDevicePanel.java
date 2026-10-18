@@ -46,13 +46,17 @@ public class McanDevicePanel extends MarklinPanel {
         }
     }
 
-    public static final CdBClassEntry[] KNOWN_CDB_CLASSES = new CdBClassEntry[]{
+    private static final CdBClassEntry[] KNOWN_CDB_CLASSES = new CdBClassEntry[]{
         new CdBClassEntry(0x00, "System / Gleisbox (0x00)"),
         new CdBClassEntry(0x01, "Lok / RailCom (0x01)"),
         new CdBClassEntry(0x10, "Display / Control (0x10)"),
         new CdBClassEntry(0x20, "Magnet / Turnout (0x20)"),
         new CdBClassEntry(0x30, "Sensor / Rückmelder (0x30)"),
     };
+
+    public static CdBClassEntry[] getKnownCdbClasses() {
+        return KNOWN_CDB_CLASSES.clone();
+    }
 
     private JButton discoverMarklinButton;
     private JButton discoverCdbButton;
