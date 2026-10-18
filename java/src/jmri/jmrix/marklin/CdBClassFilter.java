@@ -8,7 +8,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * reach the standard Marklin CAN (MCAN) listener chain.
  * <p>
  * CdB config frames share command code space with MCAN but are distinguished by
- * the low 12 bits of their hash field (bytes 2–3) always equalling {@code 0x0A80}.
+ * the hash field (bytes 2–3) matching pattern {@code 0x0A80} (mask {@code 0x0F80}).
  * Operational CdB frames (turnout, sensor, occupancy) use standard MCAN encoding
  * and pass through unfiltered.
  * <p>
@@ -26,11 +26,10 @@ public class CdBClassFilter {
     //   read_reply_id = ping_id + 0x50000
     //   write_id      = ping_id + 0x60000
     //
-    // 0x0A80 always lands in the low 12 bits of the hash (bytes 2–3).
-    // Frame-type offsets affect only bytes 0–1, so the hash test covers all five types.
+    // 0x0A80 lands in bytes 2–3, with module number encoded in byte 3 (bits 0–6).
 
-    /** Low 12 bits of the hash field (bytes 2–3) that identify a CdB config frame. */
-    static final int CDB_HASH_MASK  = 0x0FFF;
+    /** Mask and value identifying a CdB config frame in bytes 2–3. */
+    static final int CDB_HASH_MASK  = 0x0F80;
     static final int CDB_HASH_VALUE = 0x0A80;
 
     /**
@@ -124,10 +123,10 @@ public class CdBClassFilter {
         long canId = ((long)(r.getElement(0) & 0xFF) << 24)
                    | ((long)(r.getElement(1) & 0xFF) << 16)
                    | ((long)(r.getElement(2) & 0xFF) << 8)
-                   |  (long)(r.getElement(3) & 0xFF);
+                   |  (r.getElement(3) & 0xFF);
 
-        // Class low nibble is encoded in the upper byte of the hash.
-        int classLow = (hash16 >> 8) & 0x0F;
+        // Class low nibble is encoded in the upper nibble of byte 2 (bits 12-15 of 16-bit hash).
+        int classLow = (hash16 >> 12) & 0x0F;
 
         // Recover class and frame type by trying each known frame-type offset.
         // For each candidate subtract the offset (module byte cleared) and verify
@@ -186,7 +185,4 @@ public class CdBClassFilter {
         }
         return true;
     }
-
-    private static final org.slf4j.Logger log =
-        org.slf4j.LoggerFactory.getLogger(CdBClassFilter.class);
 }
