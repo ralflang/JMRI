@@ -44,7 +44,7 @@ public class MarklinMessageFormatter {
         }
 
         appendPriority(decoded, sb);
-        appendCommand(decoded, sb, i18n);
+        appendCommand(decoded, rawData, sb, i18n);
         appendResponse(decoded, sb, i18n);
         appendAddress(decoded, sb, i18n);
         appendCanHex(rawData, sb);
@@ -108,9 +108,20 @@ public class MarklinMessageFormatter {
         sb.append(MarklinCanCodec.getPriorityDescription(decoded.getPriority()));
     }
 
-    private static void appendCommand(MarklinCanCodec.DecodedMessage decoded, StringBuilder sb, I18nProvider i18n) {
+    private static void appendCommand(MarklinCanCodec.DecodedMessage decoded, int[] rawData, StringBuilder sb, I18nProvider i18n) {
         sb.append(" Command: ");
         int command = decoded.getCommand();
+
+        // Check for CdB config frame first (command 0x11 with CdB hash pattern)
+        if (command == 0x11 && rawData != null) {
+            int hash16 = ((decoded.getHash()[0] & 0xFF) << 8) | (decoded.getHash()[1] & 0xFF);
+            if ((hash16 & 0x0F80) == 0x0A80) {
+                // Use CdBClassFilter to classify and format
+                CdBClassFilter.Classification classification = CdBClassFilter.classify(rawData);
+                formatCdBCommand(classification, sb);
+                return;
+            }
+        }
 
         if (command == MarklinConstants.SYSCOMMANDSTART) {
             // System command - check data byte to determine subcommand
@@ -299,5 +310,72 @@ public class MarklinMessageFormatter {
         for (int i = 1; i < rawData.length; i++) {
             sb.append(", 0x").append(Integer.toHexString(rawData[i]));
         }
+    }
+
+    /**
+     * Format CdB-specific config frame information from classification.
+     * Uses pre-classified CdB frame information.
+     */
+    private static void formatCdBCommand(CdBClassFilter.Classification classification, StringBuilder sb) {
+        if (!classification.isCdBConfig()) {
+            sb.append("Unknown (0x11)");
+            return;
+        }
+
+        // Format: CdB [FrameType] (Class 0xXX DeviceName, Module N)
+        sb.append("CdB ");
+
+        switch (classification.getFrameType()) {
+            case PING:
+                sb.append("PING");
+                break;
+            case PING_REPLY:
+                sb.append("PING Reply");
+                break;
+            case READ:
+                sb.append("Read Request");
+                break;
+            case READ_REPLY:
+                sb.append("Read Reply");
+                break;
+            case WRITE:
+                sb.append("Write/Control");
+                break;
+            default:
+                sb.append("Config");
+                break;
+        }
+
+        // Add class and device information
+        int canClass = classification.getCanClass();
+        if (canClass > 0) {
+            sb.append(" (Class 0x").append(String.format("%02X", canClass));
+
+            // Add known device name if available
+            String deviceName = getCdBDeviceName(canClass);
+            if (deviceName != null) {
+                sb.append(" ").append(deviceName);
+            }
+
+            // Add module number
+            int module = classification.getModule();
+            if (module >= 0) {
+                sb.append(", Module ").append(module);
+            }
+
+            sb.append(")");
+        }
+    }
+
+    /**
+     * Get human-readable name for a CdB class if known.
+     */
+    private static String getCdBDeviceName(int canClass) {
+        for (CdBMessage.CdBDeviceClass deviceClass : CdBMessage.CdBDeviceClass.values()) {
+            if (deviceClass.getClassId() == canClass) {
+                return deviceClass.getDisplayName();
+            }
+        }
+        return null;
     }
 }
