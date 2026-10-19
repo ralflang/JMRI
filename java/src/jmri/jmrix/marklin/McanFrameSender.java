@@ -4,7 +4,7 @@ package jmri.jmrix.marklin;
  * Functional interface for sending raw MCAN frames over a transport layer.
  * <p>
  * Designed with zero JMRI dependencies for reusability across standalone
- * gateways e.g., McanTcpBridge, microservices or CLI tools.
+ * gateways e.g. McanTcpBridge, microservices or CLI tools.
  *
  * @author Ralf Lang (ralf.lang@ralf-lang.de)
  */

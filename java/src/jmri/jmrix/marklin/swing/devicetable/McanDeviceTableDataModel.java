@@ -22,8 +22,9 @@ public class McanDeviceTableDataModel extends AbstractTableModel implements Prop
     public static final int COLUMN_TYPE = 2;
     public static final int COLUMN_STATE = 3;
     public static final int COLUMN_SOFTWARE = 4;
-    public static final int COLUMN_LAST_SEEN = 5;
-    public static final int NUM_COLUMNS = 6;
+    public static final int COLUMN_FIRST_SEEN = 5;
+    public static final int COLUMN_LAST_SEEN = 6;
+    public static final int NUM_COLUMNS = 7;
 
     private final McanDeviceManager manager;
     private final List<McanDevice> devices = new ArrayList<>();
@@ -90,6 +91,8 @@ public class McanDeviceTableDataModel extends AbstractTableModel implements Prop
                 return "State";
             case COLUMN_SOFTWARE:
                 return "Software Version";
+            case COLUMN_FIRST_SEEN:
+                return "First Found";
             case COLUMN_LAST_SEEN:
                 return "Last Seen";
             default:
@@ -114,6 +117,8 @@ public class McanDeviceTableDataModel extends AbstractTableModel implements Prop
                 return device.getDeviceState();
             case COLUMN_SOFTWARE:
                 return device.getSoftwareVersion() >= 0 ? String.format("v%d.%d", (device.getSoftwareVersion() >> 8) & 0xFF, device.getSoftwareVersion() & 0xFF) : "Unknown";
+            case COLUMN_FIRST_SEEN:
+                return device.getFirstSeen() != null ? device.getFirstSeen().toString() : "";
             case COLUMN_LAST_SEEN:
                 return device.getLastSeen() != null ? device.getLastSeen().toString() : "";
             default:

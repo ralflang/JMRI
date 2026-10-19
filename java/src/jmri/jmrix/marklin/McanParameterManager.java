@@ -4,9 +4,11 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Parameter manager abstraction for reading and writing device parameters.
+ * Parameter manager abstraction for reading and writing a single device's parameters.
  * <p>
  * Abstracts CdB indexed configuration parameters and native MCAN CS2/MS2 parameters.
+ *
+ * This feels a bit like functionality of DecoderPro but is tied to ephemeral bus devices.
  *
  * @author Ralf Lang (ralf.lang@ralf-lang.de)
  */

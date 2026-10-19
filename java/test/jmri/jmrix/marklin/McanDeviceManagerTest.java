@@ -112,4 +112,79 @@ class McanDeviceManagerTest {
         assertNotNull(device);
         assertEquals(McanDeviceState.ONLINE, device.getDeviceState());
     }
+
+    @Test
+    void testProgrammaticMarklinDiscovery() {
+        // Test that discovery can be triggered without UI
+        int initialSent = tc.getSentMessages().size();
+
+        manager.discoverMarklinDevices();
+
+        assertEquals(initialSent + 1, tc.getSentMessages().size());
+        MarklinMessage sent = tc.getLastMessageSent();
+        assertNotNull(sent);
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(sent);
+        assertEquals(MarklinConstants.CMDPING, decoded.getCommand());
+        assertFalse(decoded.isResponse());
+    }
+
+    @Test
+    void testProgrammaticCdBDiscoverySingle() {
+        // Test discovery of a single CdB device class
+        int initialSent = tc.getSentMessages().size();
+
+        manager.discoverCdBDevice(CdBMessage.CdBDeviceClass.WEICHEN_CHEF_KOMBI);
+
+        assertEquals(initialSent + 1, tc.getSentMessages().size());
+        MarklinMessage sent = tc.getLastMessageSent();
+        assertNotNull(sent);
+
+        // Verify the ping ID is correct for class 0x27
+        int expectedPingId = CdBMessage.CdBDeviceClass.WEICHEN_CHEF_KOMBI.getPingId();
+        int actualId = ((sent.getElement(0) & 0xFF) << 24) |
+                      ((sent.getElement(1) & 0xFF) << 16) |
+                      ((sent.getElement(2) & 0xFF) << 8) |
+                      (sent.getElement(3) & 0xFF);
+        assertEquals(expectedPingId, actualId);
+        assertEquals(0, sent.getElement(4)); // DLC should be 0
+    }
+
+    @Test
+    void testProgrammaticCdBDiscoveryAll() {
+        // Test discovery of all CdB device classes
+        int initialSent = tc.getSentMessages().size();
+
+        manager.discoverAllCdBDevices();
+
+        int expectedCount = CdBMessage.CdBDeviceClass.values().length;
+        assertEquals(initialSent + expectedCount, tc.getSentMessages().size());
+
+        // Verify each message has zero DLC
+        for (int i = initialSent; i < tc.getSentMessages().size(); i++) {
+            MarklinMessage msg = tc.getSentMessages().get(i);
+            assertEquals(0, msg.getElement(4), "All CdB pings should have DLC=0");
+        }
+    }
+
+    @Test
+    void testReplyProcessingIndependentOfSender() {
+        // Test that replies are processed regardless of who sent the ping
+        McanDeviceIdentity.CdB cdbIdentity = McanDeviceIdentity.forCdB(0x0D, 0x01);
+        assertNull(manager.getDevice(cdbIdentity));
+
+        // Simulate a reply from a device (could be from any source on the bus)
+        long pingReplyId = cdBPingId(0x0D) + 0x10000;
+        long withModule = (pingReplyId & 0xFFFFFF00L) | 0x81;
+
+        MarklinReply reply = frameFromCanId(withModule, 2);
+
+        // Directly inject the reply as if it came from the bus
+        manager.reply(reply);
+
+        // Device should be discovered regardless of who sent the original ping
+        McanDevice device = manager.getDevice(cdbIdentity);
+        assertNotNull(device);
+        assertEquals(McanDeviceState.ONLINE, device.getDeviceState());
+    }
 }

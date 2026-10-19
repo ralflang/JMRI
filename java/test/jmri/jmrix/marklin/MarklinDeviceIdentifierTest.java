@@ -216,7 +216,7 @@ public class MarklinDeviceIdentifierTest {
             MarklinDeviceIdentifier.getDeviceTypeName(MarklinDeviceIdentifier.DEVICE_TYPE_WIRELESS));
         assertEquals("CS2-GUI (Master)",
             MarklinDeviceIdentifier.getDeviceTypeName(MarklinDeviceIdentifier.DEVICE_TYPE_CS2_GUI));
-        assertEquals("Unknown Device (0x0099)",
+        assertEquals("MCAN Device (unknown type 0x0099)",
             MarklinDeviceIdentifier.getDeviceTypeName(0x0099));
     }
 

@@ -16,7 +16,7 @@ package jmri.jmrix.marklin;
  * <li>Bytes 9-12: Data bytes (0-8 bytes as specified by DLC)</li>
  * </ul>
  *
- * @author Generated for issue #14104
+ * @author Ralf Lang
  * @see <a href="https://www.maerklin.de/fileadmin/media/produkte/CS2_can-protokoll_1-0.pdf">CS2 CAN Protocol 1.0</a>
  * @see <a href="https://streaming.maerklin.de/public-media/cs2/cs2CAN-Protokoll-2_0.pdf">CS2 CAN Protocol 2.0</a>
  */

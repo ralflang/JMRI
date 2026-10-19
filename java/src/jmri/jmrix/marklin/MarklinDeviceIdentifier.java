@@ -250,7 +250,7 @@ public class MarklinDeviceIdentifier {
                 if (deviceType >= 0x0010 && deviceType <= 0x0019) {
                     return String.format("Gleisbox (variant 0x%04X)", deviceType);
                 }
-                return String.format("Unknown Device (0x%04X)", deviceType);
+                return String.format("MCAN Device (unknown type 0x%04X)", deviceType);
         }
     }
 

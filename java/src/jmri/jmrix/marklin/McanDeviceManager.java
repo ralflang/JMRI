@@ -54,6 +54,50 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
         return getBySystemName(identity.getSystemName(getSystemPrefix()));
     }
 
+    /**
+     * Trigger discovery of native Märklin MCAN devices (CS2, MS2, Gleisbox, etc.).
+     * Sends a standard MCAN PING (command 0x18, DLC=0).
+     * Replies will be automatically captured and processed by this manager.
+     */
+    public void discoverMarklinDevices() {
+        if (memo.getTrafficController() == null) {
+            return;
+        }
+        int[] encodedPing = MarklinCanCodec.builder()
+                .setCommand(MarklinConstants.CMDPING)
+                .setResponse(false)
+                .build();
+        MarklinMessage msg = new MarklinMessage(encodedPing);
+        memo.getTrafficController().sendMarklinMessage(msg, null);
+    }
+
+    /**
+     * Trigger discovery of a specific CdB device class.
+     * Sends a zero-DLC class-specific ping.
+     * Replies will be automatically captured and processed by this manager.
+     *
+     * @param deviceClass target CdB device class to discover
+     */
+    public void discoverCdBDevice(CdBMessage.CdBDeviceClass deviceClass) {
+        if (memo.getTrafficController() == null || deviceClass == null) {
+            return;
+        }
+        int[] rawFrame = CdBMessage.createClassPing(deviceClass);
+        MarklinMessage msg = new MarklinMessage(rawFrame);
+        memo.getTrafficController().sendMarklinMessage(msg, null);
+    }
+
+    /**
+     * Trigger discovery of all known CdB device classes.
+     * Sends zero-DLC pings for each registered CdB device class.
+     * Replies will be automatically captured and processed by this manager.
+     */
+    public void discoverAllCdBDevices() {
+        for (CdBMessage.CdBDeviceClass deviceClass : CdBMessage.CdBDeviceClass.values()) {
+            discoverCdBDevice(deviceClass);
+        }
+    }
+
     @Override
     public Class<McanDevice> getNamedBeanClass() {
         return McanDevice.class;
