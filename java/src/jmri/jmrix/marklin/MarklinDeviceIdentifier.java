@@ -139,6 +139,7 @@ public class MarklinDeviceIdentifier {
     public static final int DEVICE_TYPE_CONNECT_6021 = 0x0020; // Connect 6021 (60128)
     public static final int DEVICE_TYPE_MS2 = 0x0030;          // MS 2 (60653)
     public static final int DEVICE_TYPE_CS3 = 0x0050;          // CS3 (estimated, not in v2.0 spec)
+    public static final int DEVICE_TYPE_CC_SCHNITTE = 0x1300;  // CC-Schnitte CAN/USB interface
     public static final int DEVICE_TYPE_WIRELESS = 0xFFE0;     // Wireless Devices
     public static final int DEVICE_TYPE_CS2_GUI = 0xFFFF;      // CS2-GUI (Master)
 
@@ -237,6 +238,8 @@ public class MarklinDeviceIdentifier {
                 return "MS2";
             case DEVICE_TYPE_CS3:
                 return "CS3";
+            case DEVICE_TYPE_CC_SCHNITTE:
+                return "CC-Schnitte";
             case DEVICE_TYPE_WIRELESS:
                 return "Wireless Device";
             case DEVICE_TYPE_CS2_GUI:

@@ -212,12 +212,38 @@ public class MarklinDeviceIdentifierTest {
             MarklinDeviceIdentifier.getDeviceTypeName(MarklinDeviceIdentifier.DEVICE_TYPE_CONNECT_6021));
         assertEquals("MS2",
             MarklinDeviceIdentifier.getDeviceTypeName(MarklinDeviceIdentifier.DEVICE_TYPE_MS2));
+        assertEquals("CC-Schnitte",
+            MarklinDeviceIdentifier.getDeviceTypeName(MarklinDeviceIdentifier.DEVICE_TYPE_CC_SCHNITTE));
         assertEquals("Wireless Device",
             MarklinDeviceIdentifier.getDeviceTypeName(MarklinDeviceIdentifier.DEVICE_TYPE_WIRELESS));
         assertEquals("CS2-GUI (Master)",
             MarklinDeviceIdentifier.getDeviceTypeName(MarklinDeviceIdentifier.DEVICE_TYPE_CS2_GUI));
         assertEquals("MCAN Device (unknown type 0x0099)",
             MarklinDeviceIdentifier.getDeviceTypeName(0x0099));
+    }
+
+    @Test
+    public void testFromPingResponseCcSchnitte() {
+        // PING response from CC-Schnitte as described in the CAN forum:
+        // SW=2.1 Geräte-UID=0x1300, device type code = 0x1300
+        int[] message = new int[]{
+            0x00, 0x31, // Command 0x18 (PING), response flag set
+            0x47, 0x11, // Hash
+            0x08,       // DLC: 8 data bytes
+            0x00, 0x00, 0x00, 0x00, // Address
+            0x00, 0x00, 0x13, 0x00, // UID bytes 0-3 (0x00001300)
+            0x02, 0x01,             // Software version v2.1
+            0x13, 0x00              // Device type 0x1300 (CC-Schnitte)
+        };
+
+        MarklinCanCodec.DecodedMessage decoded = MarklinCanCodec.decode(message);
+        MarklinDeviceIdentifier.DeviceInfo info = MarklinDeviceIdentifier.fromPingResponse(decoded);
+
+        assertNotNull(info);
+        assertEquals(0x00001300L, info.getUid());
+        assertEquals(MarklinDeviceIdentifier.DEVICE_TYPE_CC_SCHNITTE, info.getDeviceType());
+        assertEquals(0x0201, info.getSoftwareVersion());
+        assertEquals("CC-Schnitte", info.getDeviceTypeName());
     }
 
     @Test
