@@ -147,4 +147,31 @@ class McanDevicePanelTest {
         // Table should reflect the change
         assertEquals(McanDeviceState.ONLINE, panel.getDataModel().getValueAt(0, McanDeviceTableDataModel.COLUMN_STATE));
     }
+
+    @Test
+    @jmri.util.junit.annotations.DisabledIfHeadless
+    void testConfigureButtonDisabledWithNoSelection() {
+        McanDevicePanel panel = new McanDevicePanel();
+        panel.initComponents(memo);
+        assertFalse(panel.getConfigureButton().isEnabled(),
+            "Configure button must be disabled when no device is selected");
+    }
+
+    @Test
+    @jmri.util.junit.annotations.DisabledIfHeadless
+    void testConfigureButtonEnabledWhenConfigurableDeviceSelected() {
+        McanDevicePanel panel = new McanDevicePanel();
+        panel.initComponents(memo);
+
+        // Add a WeichenChef Kombi device (class 0x27 = configurable)
+        McanDeviceIdentity.CdB identity = McanDeviceIdentity.forCdB(0x27, 0x03);
+        McanDevice device = memo.getMcanDeviceManager().provideDevice(identity);
+        device.setDeviceState(McanDeviceState.ONLINE);
+
+        // Select the row in the table
+        panel.getDeviceTable().setRowSelectionInterval(0, 0);
+
+        assertTrue(panel.getConfigureButton().isEnabled(),
+            "Configure button must be enabled for a configurable CdB device");
+    }
 }

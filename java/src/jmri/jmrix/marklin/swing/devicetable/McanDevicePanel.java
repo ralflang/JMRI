@@ -5,6 +5,7 @@ import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -12,11 +13,17 @@ import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 
 import jmri.jmrix.marklin.CdBMessage;
+import jmri.jmrix.marklin.McanDevice;
+import jmri.jmrix.marklin.McanDeviceIdentity;
 import jmri.jmrix.marklin.MarklinSystemConnectionMemo;
 import jmri.jmrix.marklin.McanDeviceManager;
 import jmri.jmrix.marklin.swing.MarklinPanel;
+import jmri.jmrix.marklin.swing.configure.ReporterConfigPanel;
+import jmri.jmrix.marklin.swing.configure.WeichenChefKombiConfigPanel;
+import jmri.util.JmriJFrame;
 
 /**
  * Panel displaying discovered MCAN devices (Märklin and CdB) with discovery controls.
@@ -25,8 +32,12 @@ import jmri.jmrix.marklin.swing.MarklinPanel;
  */
 public class McanDevicePanel extends MarklinPanel {
 
+    /** CdB class IDs for which a config panel is available. */
+    private static final Set<Integer> CONFIGURABLE_CLASSES = Set.of(0x0B, 0x0D, 0x27);
+
     private JButton discoverMarklinButton;
     private JButton discoverCdbButton;
+    private JButton configureButton;
     private final Map<CdBMessage.CdBDeviceClass, JCheckBox> cdbClassCheckBoxes = new HashMap<>();
 
     private McanDeviceTableDataModel dataModel;
@@ -54,6 +65,12 @@ public class McanDevicePanel extends MarklinPanel {
         discoverCdbButton.setToolTipText("Send CdB PING query for selected CdB classes");
         discoverCdbButton.addActionListener(this::discoverCdbActionPerformed);
         buttonRow.add(discoverCdbButton);
+
+        configureButton = new JButton("Configure");
+        configureButton.setToolTipText("Open configuration panel for the selected CdB device");
+        configureButton.setEnabled(false);
+        configureButton.addActionListener(this::configureActionPerformed);
+        buttonRow.add(configureButton);
 
         topPanel.add(buttonRow);
 
@@ -84,6 +101,33 @@ public class McanDevicePanel extends MarklinPanel {
 
         dataModel = new McanDeviceTableDataModel(mcanDeviceManager);
         deviceTable.setModel(dataModel);
+
+        deviceTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        deviceTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updateConfigureButtonState();
+            }
+        });
+    }
+
+    private void updateConfigureButtonState() {
+        int selectedRow = deviceTable.getSelectedRow();
+        if (selectedRow < 0) {
+            configureButton.setEnabled(false);
+            return;
+        }
+        McanDevice device = dataModel.getDeviceAt(selectedRow);
+        if (device == null) {
+            configureButton.setEnabled(false);
+            return;
+        }
+        McanDeviceIdentity identity = device.getIdentity();
+        if (!identity.isCdB()) {
+            configureButton.setEnabled(false);
+            return;
+        }
+        int canClass = ((McanDeviceIdentity.CdB) identity).getCanClass();
+        configureButton.setEnabled(CONFIGURABLE_CLASSES.contains(canClass));
     }
 
     private void discoverMarklinActionPerformed(ActionEvent e) {
@@ -106,6 +150,35 @@ public class McanDevicePanel extends MarklinPanel {
         }
     }
 
+    private void configureActionPerformed(ActionEvent e) {
+        int selectedRow = deviceTable.getSelectedRow();
+        if (selectedRow < 0) return;
+        McanDevice device = dataModel.getDeviceAt(selectedRow);
+        if (device == null) return;
+        openConfigurePanel(device);
+    }
+
+    private void openConfigurePanel(McanDevice device) {
+        McanDeviceIdentity identity = device.getIdentity();
+        if (!identity.isCdB()) return;
+        int canClass = ((McanDeviceIdentity.CdB) identity).getCanClass();
+
+        MarklinPanel configPanel;
+        String title;
+        if (canClass == 0x27) {
+            configPanel = new WeichenChefKombiConfigPanel(device, memo);
+            title = "WeichenChef Kombi – " + device.getSystemName();
+        } else {
+            configPanel = new ReporterConfigPanel(device, memo);
+            title = "Reporter – " + device.getSystemName();
+        }
+
+        JmriJFrame frame = new JmriJFrame(title);
+        frame.add(configPanel);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
     @Override
     public String getTitle() {
         return "MCAN Devices";
@@ -122,6 +195,10 @@ public class McanDevicePanel extends MarklinPanel {
 
     public JButton getDiscoverCdbButton() {
         return discoverCdbButton;
+    }
+
+    public JButton getConfigureButton() {
+        return configureButton;
     }
 
     public Map<CdBMessage.CdBDeviceClass, JCheckBox> getCdbClassCheckBoxes() {
