@@ -14,7 +14,7 @@ import jmri.jmrix.marklin.swing.MarklinPanel;
  *
  * @author Ralf Lang (ralf.lang@ralf-lang.de)
  */
-public class ReporterConfigPanel extends MarklinPanel {
+public class ReporterConfigPanel extends MarklinPanel implements MarklinListener {
 
     private final McanDevice device;
     private final int canClass;
@@ -385,6 +385,25 @@ public class ReporterConfigPanel extends MarklinPanel {
             currentRawId = ((McanDeviceIdentity.CdB) identity).getModuleId();
             service.selectModule(currentRawId);
         }
+
+        // Register for MCAN traffic to receive occupancy status frames
+        if (memo != null && memo.getTrafficController() != null) {
+            memo.getTrafficController().addMarklinListener(this);
+        }
+    }
+
+    // ---- MarklinListener implementation ----
+
+    @Override
+    public void message(MarklinMessage m) {
+        // outbound messages not relevant
+    }
+
+    @Override
+    public void reply(MarklinReply r) {
+        if (service != null) {
+            service.handleStatusFrame(r);
+        }
     }
 
     // ---- actions ----
@@ -449,6 +468,9 @@ public class ReporterConfigPanel extends MarklinPanel {
 
     @Override
     public void dispose() {
+        if (memo != null && memo.getTrafficController() != null) {
+            memo.getTrafficController().removeMarklinListener(this);
+        }
         if (service != null) {
             service.deselectModule();
         }
