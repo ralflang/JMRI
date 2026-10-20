@@ -148,4 +148,3 @@ class McanDevicePanelTest {
         assertEquals(McanDeviceState.ONLINE, panel.getDataModel().getValueAt(0, McanDeviceTableDataModel.COLUMN_STATE));
     }
 }
-}
