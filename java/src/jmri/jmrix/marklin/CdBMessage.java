@@ -326,6 +326,26 @@ public class CdBMessage {
     }
 
     /**
+     * Write one 6-character packet of the module name (reg 250).
+     * data[0] = packet index, data[1] = 250 (reg), data[2..7] = 6 ASCII bytes (0-padded).
+     *
+     * @param canClass CdB device class
+     * @param moduleId raw module ID (1..127)
+     * @param packetIndex packet index (0-based)
+     * @param chars up to 6 ASCII character values (shorter arrays are 0-padded)
+     * @return 13-element raw CAN frame
+     */
+    public static int[] createWriteModulnamePacket(int canClass, int moduleId, int packetIndex, int[] chars) {
+        int[] data = new int[8];
+        data[0] = packetIndex & 0xFF;
+        data[1] = 250;
+        for (int i = 0; i < 6; i++) {
+            data[2 + i] = (i < chars.length) ? (chars[i] & 0xFF) : 0;
+        }
+        return buildWriteFrame(canClass, moduleId, 8, data);
+    }
+
+    /**
      * Create a read request frame for a single register (DLC=2: subcmd + reg).
      *
      * @param canClass CdB device class
