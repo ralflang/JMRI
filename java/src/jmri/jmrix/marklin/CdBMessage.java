@@ -30,15 +30,15 @@ public class CdBMessage {
 
     /**
      * Known CdB device classes (CAN class identifiers).
-     * Each class requires a separate discovery ping.
+     * Each device class requires a separate discovery ping.
      */
     public enum CdBDeviceClass {
         STROM_SNIFFER(0x0B, "StromSniffer"),
         GLEIS_REPORTER(0x0D, "GleisReporter"),
-        REPORTER_CHEF_002(0x21, "ReporterChef 002"),
-        WEICHEN_CHEF_MAGNET(0x22, "WeichenChef Magnet M 012 / deLuxe 007"),
-        WEICHEN_CHEF_AC(0x23, "WeichenChef AC 002"),
-        WEICHEN_CHEF_BASIC(0x26, "WeichenChef Basic 002"),
+        REPORTER_CHEF_002(0x21, "ReporterChef"),
+        WEICHEN_CHEF_MAGNET(0x22, "WeichenChef Magnet M / deLuxe"),
+        WEICHEN_CHEF_AC(0x23, "WeichenChef AC"),
+        WEICHEN_CHEF_BASIC(0x26, "WeichenChef Basic"),
         WEICHEN_CHEF_KOMBI(0x27, "WeichenChef Kombi");
 
         private final int classId;
@@ -75,7 +75,7 @@ public class CdBMessage {
      * Create a CdB PING query frame (class 0x00, module 0x00).
      *
      * @param hash 16-bit sender hash
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createPing(int hash) {
         return createConfigFrame(0x00, 0x00, 0x00, new int[0], hash);
@@ -85,7 +85,7 @@ public class CdBMessage {
      * Create a CdB class-specific discovery ping (zero-DLC).
      *
      * @param deviceClass target CdB device class
-     * @return 13-element raw CAN frame with zero DLC
+     * @return 13 element raw CAN frame with zero DLC
      */
     public static int[] createClassPing(CdBDeviceClass deviceClass) {
         int pingId = deviceClass.getPingId();
@@ -108,7 +108,7 @@ public class CdBMessage {
      * @param moduleId CdB target module ID
      * @param paramIndex parameter index to read
      * @param hash 16-bit sender hash
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createReadParam(int canClass, int moduleId, int paramIndex, int hash) {
         return createConfigFrame(canClass, moduleId, 0x01, new int[]{paramIndex & 0xFF}, hash);
@@ -122,7 +122,7 @@ public class CdBMessage {
      * @param paramIndex parameter index
      * @param paramValue parameter value byte
      * @param hash 16-bit sender hash
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createWriteParam(int canClass, int moduleId, int paramIndex, int paramValue, int hash) {
         return createConfigFrame(canClass, moduleId, 0x02, new int[]{paramIndex & 0xFF, paramValue & 0xFF}, hash);
@@ -134,7 +134,7 @@ public class CdBMessage {
      * @param canClass CdB target CAN class
      * @param moduleId CdB target module ID
      * @param hash 16-bit sender hash
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createReset(int canClass, int moduleId, int hash) {
         return createConfigFrame(canClass, moduleId, 0x03, new int[0], hash);
@@ -148,7 +148,7 @@ public class CdBMessage {
      * @param cdbCommand CdB command code
      * @param payload extra payload bytes
      * @param hash 16-bit sender hash
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createConfigFrame(int canClass, int moduleId, int cdbCommand, int[] payload, int hash) {
         Objects.requireNonNull(payload, "payload cannot be null");
@@ -185,7 +185,7 @@ public class CdBMessage {
         sender.sendFrame(frame);
     }
 
-    // ---- Raw CdB frame builders (bytes 0-3 = CAN ID, byte 4 = DLC, bytes 5+ = data) ----
+    // Raw CdB frame builders (bytes 0-3 = CAN ID, byte 4 = DLC, bytes 5+ = data)
 
     /**
      * Build a raw 13-byte CdB write frame for a specific module.
@@ -233,7 +233,7 @@ public class CdBMessage {
      *
      * @param canClass CdB device class
      * @param moduleId raw module ID (1..127)
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createDeselectModule(int canClass, int moduleId) {
         return buildWriteFrame(canClass, moduleId, 2, new int[]{0x00, 0xFE});
@@ -244,7 +244,7 @@ public class CdBMessage {
      *
      * @param canClass CdB device class
      * @param moduleId raw module ID (1..127)
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createSelectModule(int canClass, int moduleId) {
         return buildWriteFrame(canClass, moduleId, 4, new int[]{0x00, 0xF7, 0x00, 0x01});
@@ -257,7 +257,7 @@ public class CdBMessage {
      * @param moduleId raw module ID (1..127)
      * @param channel channel number (1-8)
      * @param timeMs switching time in milliseconds
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createWriteChSwitchingTime(int canClass, int moduleId, int channel, int timeMs) {
         return buildWriteFrame(canClass, moduleId, 4, new int[]{
@@ -273,7 +273,7 @@ public class CdBMessage {
      * @param moduleId raw module ID (1..127)
      * @param channel channel number (1-5)
      * @param rawAddr encoded raw address value
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createWriteChAddress(int canClass, int moduleId, int channel, int rawAddr) {
         return buildWriteFrame(canClass, moduleId, 4, new int[]{
@@ -289,7 +289,7 @@ public class CdBMessage {
      * @param moduleId raw module ID (1..127)
      * @param channel channel number (1-8)
      * @param rmkAddr feedback address value
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createWriteChRmk(int canClass, int moduleId, int channel, int rmkAddr) {
         return buildWriteFrame(canClass, moduleId, 4, new int[]{
@@ -304,7 +304,7 @@ public class CdBMessage {
      * @param moduleId raw module ID (1..127)
      * @param channel channel number (1-4)
      * @param flagValue flag byte value (0=off, 1 or 2=on per module type)
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createWriteChCdBFlag(int canClass, int moduleId, int channel, int flagValue) {
         return buildWriteFrame(canClass, moduleId, 4, new int[]{
@@ -317,7 +317,7 @@ public class CdBMessage {
      *
      * @param canClass CdB device class
      * @param newId new module ID to assign
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createWriteNewModuleId(int canClass, int newId) {
         return buildWriteFrame(canClass, 0, 4, new int[]{
@@ -333,7 +333,7 @@ public class CdBMessage {
      * @param moduleId raw module ID (1..127)
      * @param packetIndex packet index (0-based)
      * @param chars up to 6 ASCII character values (shorter arrays are 0-padded)
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createWriteModulnamePacket(int canClass, int moduleId, int packetIndex, int[] chars) {
         int[] data = new int[8];
@@ -352,7 +352,7 @@ public class CdBMessage {
      * @param moduleId raw module ID (1..127)
      * @param subcmd sub-command byte (0 for global regs, 1-8 for per-channel)
      * @param reg register number
-     * @return 13-element raw CAN frame
+     * @return 13 element raw CAN frame
      */
     public static int[] createReadReg(int canClass, int moduleId, int subcmd, int reg) {
         return buildReadFrame(canClass, moduleId, 2, new int[]{subcmd & 0xFF, reg & 0xFF});
@@ -365,7 +365,7 @@ public class CdBMessage {
      *
      * @param canClass CdB device class (typically 0x27)
      * @param moduleId raw module ID (1..127)
-     * @return array of 13-element raw CAN frames
+     * @return array of 13 element raw CAN frames
      */
     public static int[][] createReadAllPropertiesWeichenChef(int canClass, int moduleId) {
         int[] globalRegs = {1, 244, 246, 245};
@@ -391,13 +391,13 @@ public class CdBMessage {
     }
 
     /**
-     * Create all property read frames for a Reporter module (GleisReporter/StromSniffer).
+     * Create all property read frames for a Reporter module (GleisReporter/StromSniffer).n
      * Reads regs {250,1,244,245,246,12,5,9,10,11,16,17,18,19,21,253},
      * per-channel regs 2 and 3 (ch 1-8).
      *
      * @param canClass CdB device class (0x0D for GleisReporter, 0x0B for StromSniffer)
      * @param moduleId raw module ID (1..127)
-     * @return array of 13-element raw CAN frames
+     * @return array of 13 element raw CAN frames
      */
     public static int[][] createReadAllPropertiesReporter(int canClass, int moduleId) {
         int[] globalRegs = {250, 1, 244, 245, 246, 12, 5, 9, 10, 11, 16, 17, 18, 19, 21, 253};
@@ -416,13 +416,17 @@ public class CdBMessage {
         return frames;
     }
 
-    // ---- Address encoding for WeichenChef Kombi ----
+    // Address encoding for WeichenChef Kombi (probably can be expanded to other WeichenChef types later)
 
     /**
-     * Encode an output address for a type-2 (magnet) WeichenChef module.
-     * DCC → raw = 14336 + address - 1
-     * MM  → raw = 12288 + address - 1
-     * CAN → raw = address
+     * Encode an output address for a WeichenChef output channel configured as a solenoid drive
+     * (output type 2, as stored in per-channel configuration register 245).
+     * DCC -> raw = 14336 + address - 1
+     * MM  -> raw = 12288 + address - 1
+     * CAN -> raw = address
+     *
+     * This is the encoding for the CdB Config protocol.
+     * Do not confuse with operational command protocol in MarklinCanCodec.getProtocolFromAddress() which uses different offsets.
      *
      * @param format "DCC", "MM", or "CAN"
      * @param address 1-based address
@@ -437,7 +441,8 @@ public class CdBMessage {
     }
 
     /**
-     * Decode a raw wire address from a type-2 (magnet) WeichenChef module.
+     * Decode a raw wire address for a WeichenChef output channel configured as a solenoid drive
+     * (output type 2, as stored in per-channel configuration register 245).
      *
      * @param rawAddr raw wire address
      * @return AddressEncoding with format and 1-based address
@@ -453,9 +458,13 @@ public class CdBMessage {
     }
 
     /**
-     * Encode an output address for a type-3 (DCC decoder) WeichenChef module.
-     * DCC     → raw = 12288 + address - 1
-     * DCC ext → raw = 12800 + address + 3
+     * Encode an output address for a WeichenChef output channel configured as a motor drive
+     * with end-stop evaluation (output type 3, as stored in per-channel configuration register 245).
+     * Motor-drive channels only support DCC addressing in two sub-formats:
+     * DCC     -> raw = 12288 + address - 1
+     * DCC ext -> raw = 12800 + address + 3
+     * <p>
+     * For solenoid-drive channels (type 2), use {@link #encodeAddress(String, int)} instead.
      *
      * @param format "DCC" or "DCC ext."
      * @param address 1-based address
@@ -469,7 +478,10 @@ public class CdBMessage {
     }
 
     /**
-     * Decode a raw wire address from a type-3 (DCC decoder) WeichenChef module.
+     * Decode a raw wire address for a WeichenChef output channel configured as a motor drive
+     * with end-stop evaluation (output type 3, as stored in per-channel configuration register 245).
+     * <p>
+     * For solenoid-drive channels (type 2), use {@link #decodeAddress(int)} instead.
      *
      * @param rawAddr raw wire address
      * @return AddressEncoding with format and 1-based address
