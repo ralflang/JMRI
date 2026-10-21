@@ -2,8 +2,8 @@ package jmri.jmrix.marklin;
 
 import java.util.Objects;
 import jmri.Manager;
-import jmri.NamedBean;
 import jmri.managers.AbstractManager;
+import jmri.util.ThreadingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +87,7 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
             return;
         }
         int[] rawFrame = CdBMessage.createClassPing(deviceClass);
-        log.info("CdB discovery ping for {} (class 0x{}) frame: {}", deviceClass.getDisplayName(),
+        log.debug("CdB discovery ping for {} (class 0x{}) frame: {}", deviceClass.getDisplayName(),
                 Integer.toHexString(deviceClass.getClassId()), formatFrame(rawFrame));
         MarklinMessage msg = new MarklinMessage(rawFrame);
         msg.setReplyExpected(false);
@@ -212,8 +212,6 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
         McanDevice device = provideDevice(identity);
         device.touch();
         device.setDeviceState(McanDeviceState.ONLINE);
-        log.info("cdBConfigReply: after provideDevice canClass=0x{} module={} userName='{}'",
-                Integer.toHexString(canClass), module, device.getUserName());
 
         // Factory-fresh module: stash challenge bytes so the configure dialog can use them
         if (module == 0

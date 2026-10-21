@@ -40,6 +40,7 @@ public class McanDevicePanel extends MarklinPanel {
     private JButton discoverMarklinButton;
     private JButton discoverCdbButton;
     private JButton configureButton;
+    private JButton forgetButton;
     private final Map<CdBMessage.CdBDeviceClass, JCheckBox> cdbClassCheckBoxes = new HashMap<>();
 
     private McanDeviceTableDataModel dataModel;
@@ -73,6 +74,12 @@ public class McanDevicePanel extends MarklinPanel {
         configureButton.setEnabled(false);
         configureButton.addActionListener(this::configureActionPerformed);
         buttonRow.add(configureButton);
+
+        forgetButton = new JButton("Forget");
+        forgetButton.setToolTipText("Remove the selected device from the device list");
+        forgetButton.setEnabled(false);
+        forgetButton.addActionListener(this::forgetActionPerformed);
+        buttonRow.add(forgetButton);
 
         topPanel.add(buttonRow);
 
@@ -116,13 +123,16 @@ public class McanDevicePanel extends MarklinPanel {
         int selectedRow = deviceTable.getSelectedRow();
         if (selectedRow < 0) {
             configureButton.setEnabled(false);
+            forgetButton.setEnabled(false);
             return;
         }
         McanDevice device = dataModel.getDeviceAt(selectedRow);
         if (device == null) {
             configureButton.setEnabled(false);
+            forgetButton.setEnabled(false);
             return;
         }
+        forgetButton.setEnabled(true);
         McanDeviceIdentity identity = device.getIdentity();
         if (!identity.isCdB()) {
             configureButton.setEnabled(false);
@@ -152,6 +162,17 @@ public class McanDevicePanel extends MarklinPanel {
             }
         }
         memo.getMcanDeviceManager().discoverCdBDevices(selected);
+    }
+
+    private void forgetActionPerformed(ActionEvent e) {
+        if (memo == null || memo.getMcanDeviceManager() == null) {
+            return;
+        }
+        int selectedRow = deviceTable.getSelectedRow();
+        if (selectedRow < 0) return;
+        McanDevice device = dataModel.getDeviceAt(selectedRow);
+        if (device == null) return;
+        memo.getMcanDeviceManager().deregister(device);
     }
 
     private void configureActionPerformed(ActionEvent e) {
@@ -210,6 +231,10 @@ public class McanDevicePanel extends MarklinPanel {
 
     public JButton getConfigureButton() {
         return configureButton;
+    }
+
+    public JButton getForgetButton() {
+        return forgetButton;
     }
 
     public Map<CdBMessage.CdBDeviceClass, JCheckBox> getCdbClassCheckBoxes() {
