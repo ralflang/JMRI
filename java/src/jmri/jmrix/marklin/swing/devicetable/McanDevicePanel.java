@@ -3,7 +3,9 @@ package jmri.jmrix.marklin.swing.devicetable;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -142,12 +144,14 @@ public class McanDevicePanel extends MarklinPanel {
             return;
         }
 
+        List<CdBMessage.CdBDeviceClass> selected = new ArrayList<>();
         for (CdBMessage.CdBDeviceClass deviceClass : CdBMessage.CdBDeviceClass.values()) {
             JCheckBox cb = cdbClassCheckBoxes.get(deviceClass);
             if (cb != null && cb.isSelected()) {
-                memo.getMcanDeviceManager().discoverCdBDevice(deviceClass);
+                selected.add(deviceClass);
             }
         }
+        memo.getMcanDeviceManager().discoverCdBDevices(selected);
     }
 
     private void configureActionPerformed(ActionEvent e) {

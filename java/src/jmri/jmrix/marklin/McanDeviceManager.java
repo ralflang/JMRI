@@ -2,6 +2,7 @@ package jmri.jmrix.marklin;
 
 import java.util.Objects;
 import jmri.Manager;
+import jmri.NamedBean;
 import jmri.managers.AbstractManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,12 +102,24 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
 
     /**
      * Trigger discovery of all known CdB device classes.
-     * Sends zero-DLC pings for each registered CdB device class.
-     * Replies will be automatically captured and processed by this manager.
+     * Pings are staggered 250 ms apart to give firmware time to respond
+     * before the next class ping arrives on the bus.
      */
     public void discoverAllCdBDevices() {
-        for (CdBMessage.CdBDeviceClass deviceClass : CdBMessage.CdBDeviceClass.values()) {
-            discoverCdBDevice(deviceClass);
+        discoverCdBDevices(java.util.Arrays.asList(CdBMessage.CdBDeviceClass.values()));
+    }
+
+    /**
+     * Trigger discovery for a specific subset of CdB device classes.
+     * Pings are staggered 250 ms apart to give firmware time to respond.
+     *
+     * @param classes ordered list of classes to ping
+     */
+    public void discoverCdBDevices(java.util.List<CdBMessage.CdBDeviceClass> classes) {
+        CdBMessage.CdBDeviceClass[] arr = classes.toArray(new CdBMessage.CdBDeviceClass[0]);
+        for (int i = 0; i < arr.length; i++) {
+            final CdBMessage.CdBDeviceClass dc = arr[i];
+            ThreadingUtil.runOnGUIDelayed(() -> discoverCdBDevice(dc), i * 250);
         }
     }
 
@@ -172,7 +185,7 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
         int canClass = classification.getCanClass();
         int module = classification.getModule();
 
-        log.info("CdB config reply received: frameType={} canClass=0x{} module={}",
+        log.debug("CdB config reply received: frameType={} canClass=0x{} module={}",
                 classification.getFrameType(), Integer.toHexString(canClass), module);
 
         if (module < 0) {
@@ -199,6 +212,8 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
         McanDevice device = provideDevice(identity);
         device.touch();
         device.setDeviceState(McanDeviceState.ONLINE);
+        log.info("cdBConfigReply: after provideDevice canClass=0x{} module={} userName='{}'",
+                Integer.toHexString(canClass), module, device.getUserName());
 
         // Factory-fresh module: stash challenge bytes so the configure dialog can use them
         if (module == 0
@@ -209,40 +224,47 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
 
         // Hardware fingerprint tracking — strictly class 0x27 (WeichenChef Kombi) only.
         // Bytes 9–12 of the ping reply are stable per physical device across ID changes.
-        // FF C7 suffix means factory-fresh (not yet commissioned), skip it.
+        // Factory-fresh modules use module==0 and DLC==6; commissioned modules use DLC==3.
+        // Only extract fingerprint from DLC==3 commissioned-module replies.
+        // Migration scan only runs when the device is brand-new this session (fingerprint == -1)
+        // to avoid spurious cross-contamination on subsequent discoveries.
         if (canClass == 0x27
-                && classification.getFrameType() == CdBClassFilter.CdBFrameType.PING_REPLY) {
+                && classification.getFrameType() == CdBClassFilter.CdBFrameType.PING_REPLY
+                && module > 0
+                && (rawReply.getElement(4) & 0xFF) == 3) {
             int b9  = rawReply.getElement(9)  & 0xFF;
             int b10 = rawReply.getElement(10) & 0xFF;
             int b11 = rawReply.getElement(11) & 0xFF;
             int b12 = rawReply.getElement(12) & 0xFF;
-            if (!(b11 == 0xFF && b12 == 0xC7)) {
+            {
                 long fp = ((long) b9 << 24) | ((long) b10 << 16) | ((long) b11 << 8) | b12;
                 long existingFp = device.getHwFingerprint();
                 if (existingFp == -1L) {
                     device.setHwFingerprint(fp);
+                    // Only scan for a stale entry when this device is brand-new this session.
+                    // Scanning on every ping reply causes spurious migrations when two devices
+                    // share the same fingerprint bytes.
+                    for (McanDevice existing : getNamedBeanSet()) {
+                        if (existing == device) continue;
+                        McanDeviceIdentity existingId = existing.getIdentity();
+                        if (!existingId.isCdB()) continue;
+                        if (((McanDeviceIdentity.CdB) existingId).getCanClass() != 0x27) continue;
+                        if (existing.getHwFingerprint() != fp) continue;
+                        // Same physical device, different module ID — carry user name across
+                        String oldUserName = existing.getUserName();
+                        log.info("WeichenChef Kombi fingerprint match: migrating user name '{}' from {} to {}",
+                                oldUserName, existing.getSystemName(), device.getSystemName());
+                        deregister(existing);
+                        if (oldUserName != null && !oldUserName.isEmpty()) {
+                            device.setUserName(oldUserName);
+                        }
+                        device.setHwFingerprint(fp);
+                        break;
+                    }
                 } else if (existingFp != fp) {
                     log.warn("WeichenChef Kombi fingerprint mismatch on {}: had 0x{} got 0x{}",
                             device.getSystemName(),
                             Long.toHexString(existingFp), Long.toHexString(fp));
-                }
-                // Look for a stale entry with this fingerprint under a different system name
-                for (McanDevice existing : getNamedBeanSet()) {
-                    if (existing == device) continue;
-                    McanDeviceIdentity existingId = existing.getIdentity();
-                    if (!existingId.isCdB()) continue;
-                    if (((McanDeviceIdentity.CdB) existingId).getCanClass() != 0x27) continue;
-                    if (existing.getHwFingerprint() != fp) continue;
-                    // Same physical device, different module ID — carry user name across
-                    String oldUserName = existing.getUserName();
-                    log.info("WeichenChef Kombi fingerprint match: migrating user name '{}' from {} to {}",
-                            oldUserName, existing.getSystemName(), device.getSystemName());
-                    deregister(existing);
-                    if (oldUserName != null && !oldUserName.isEmpty()) {
-                        device.setUserName(oldUserName);
-                    }
-                    device.setHwFingerprint(fp);
-                    break;
                 }
             }
         }

@@ -171,6 +171,10 @@ public abstract class McanDeviceIdentity {
 
         @Override
         public String getDisplayName() {
+            CdBMessage.CdBDeviceClass cls = CdBMessage.CdBDeviceClass.forClassId(canClass);
+            if (cls != null) {
+                return "CdB " + cls.getDisplayName() + ", Module " + moduleId;
+            }
             return String.format("CdB Module (Class 0x%02X, Module %d)", canClass, moduleId);
         }
 

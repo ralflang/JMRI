@@ -19,6 +19,7 @@ public class McanDevice extends AbstractNamedBean {
     public static final String PROPERTY_HARDWARE_VERSION = "hardwareVersion";
     public static final String PROPERTY_FIRST_SEEN = "firstSeen";
     public static final String PROPERTY_LAST_SEEN = "lastSeen";
+    public static final String PROPERTY_HW_FINGERPRINT = "hwFingerprint";
 
     private final McanDeviceIdentity identity;
     private McanDeviceState deviceState;
@@ -199,10 +200,16 @@ public class McanDevice extends AbstractNamedBean {
     }
 
     /**
-     * Set the hardware fingerprint.
+     * Set the hardware fingerprint, dispatching PropertyChangeEvent on EDT if changed.
      * @param fp fingerprint value (bytes 9–12 packed into a long)
      */
-    public synchronized void setHwFingerprint(long fp) {
-        this.hwFingerprint = fp;
+    public void setHwFingerprint(long fp) {
+        long old;
+        synchronized (this) {
+            if (this.hwFingerprint == fp) return;
+            old = this.hwFingerprint;
+            this.hwFingerprint = fp;
+        }
+        ThreadingUtil.runOnGUI(() -> firePropertyChange(PROPERTY_HW_FINGERPRINT, old, fp));
     }
 }

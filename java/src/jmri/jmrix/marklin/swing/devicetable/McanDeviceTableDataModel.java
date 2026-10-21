@@ -7,6 +7,7 @@ import java.util.List;
 import javax.swing.table.AbstractTableModel;
 import jmri.Manager;
 import jmri.jmrix.marklin.McanDevice;
+import jmri.jmrix.marklin.McanDeviceIdentity;
 import jmri.jmrix.marklin.McanDeviceManager;
 import jmri.util.ThreadingUtil;
 
@@ -20,11 +21,12 @@ public class McanDeviceTableDataModel extends AbstractTableModel implements Prop
     public static final int COLUMN_SYS_NAME = 0;
     public static final int COLUMN_USER_NAME = 1;
     public static final int COLUMN_TYPE = 2;
-    public static final int COLUMN_STATE = 3;
-    public static final int COLUMN_SOFTWARE = 4;
-    public static final int COLUMN_FIRST_SEEN = 5;
-    public static final int COLUMN_LAST_SEEN = 6;
-    public static final int NUM_COLUMNS = 7;
+    public static final int COLUMN_ID = 3;
+    public static final int COLUMN_STATE = 4;
+    public static final int COLUMN_INFO = 5;
+    public static final int COLUMN_FIRST_SEEN = 6;
+    public static final int COLUMN_LAST_SEEN = 7;
+    public static final int NUM_COLUMNS = 8;
 
     private final McanDeviceManager manager;
     private final List<McanDevice> devices = new ArrayList<>();
@@ -87,10 +89,12 @@ public class McanDeviceTableDataModel extends AbstractTableModel implements Prop
                 return "User Name";
             case COLUMN_TYPE:
                 return "Device Type";
+            case COLUMN_ID:
+                return "ID";
             case COLUMN_STATE:
                 return "State";
-            case COLUMN_SOFTWARE:
-                return "Software Version";
+            case COLUMN_INFO:
+                return "Info";
             case COLUMN_FIRST_SEEN:
                 return "First Found";
             case COLUMN_LAST_SEEN:
@@ -112,11 +116,13 @@ public class McanDeviceTableDataModel extends AbstractTableModel implements Prop
             case COLUMN_USER_NAME:
                 return device.getUserName();
             case COLUMN_TYPE:
-                return device.getIdentity().getDisplayName();
+                return getDeviceTypeName(device);
+            case COLUMN_ID:
+                return getDeviceId(device);
             case COLUMN_STATE:
                 return device.getDeviceState();
-            case COLUMN_SOFTWARE:
-                return device.getSoftwareVersion() >= 0 ? String.format("v%d.%d", (device.getSoftwareVersion() >> 8) & 0xFF, device.getSoftwareVersion() & 0xFF) : "Unknown";
+            case COLUMN_INFO:
+                return getInfoText(device);
             case COLUMN_FIRST_SEEN:
                 return device.getFirstSeen() != null ? device.getFirstSeen().toString() : "";
             case COLUMN_LAST_SEEN:
@@ -124,6 +130,45 @@ public class McanDeviceTableDataModel extends AbstractTableModel implements Prop
             default:
                 return null;
         }
+    }
+
+    private String getDeviceTypeName(McanDevice device) {
+        McanDeviceIdentity id = device.getIdentity();
+        if (id.isCdB()) {
+            McanDeviceIdentity.CdB cdb = (McanDeviceIdentity.CdB) id;
+            jmri.jmrix.marklin.CdBMessage.CdBDeviceClass cls =
+                    jmri.jmrix.marklin.CdBMessage.CdBDeviceClass.forClassId(cdb.getCanClass());
+            return cls != null ? "CdB " + cls.getDisplayName() : String.format("CdB Class 0x%02X", cdb.getCanClass());
+        }
+        return id.getDisplayName();
+    }
+
+    private String getDeviceId(McanDevice device) {
+        McanDeviceIdentity id = device.getIdentity();
+        if (id.isCdB()) {
+            return "Module " + ((McanDeviceIdentity.CdB) id).getModuleId();
+        }
+        if (id.isNative()) {
+            return String.format("UID 0x%08X", ((McanDeviceIdentity.Native) id).getUid());
+        }
+        return "";
+    }
+
+    private String getInfoText(McanDevice device) {
+        McanDeviceIdentity id = device.getIdentity();
+        if (id.isCdB()) {
+            McanDeviceIdentity.CdB cdb = (McanDeviceIdentity.CdB) id;
+            if (cdb.getCanClass() == 0x27) {
+                long fp = device.getHwFingerprint();
+                if (fp != -1L) {
+                    return String.format("HW-ID: %08X", fp);
+                }
+                return "";
+            }
+            return "";
+        }
+        int sw = device.getSoftwareVersion();
+        return sw >= 0 ? String.format("v%d.%d", (sw >> 8) & 0xFF, sw & 0xFF) : "";
     }
 
     @Override
