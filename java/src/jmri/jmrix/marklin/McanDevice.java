@@ -26,6 +26,8 @@ public class McanDevice extends AbstractNamedBean {
     private int hardwareVersion = -1;
     private final Instant firstSeen;
     private Instant lastSeen;
+    private int[] factoryChallengeBytes = null;
+    private long hwFingerprint = -1L; // bytes 9-12 of ping reply, -1 = unknown
 
     /**
      * Create an McanDevice bean using system prefix and identity.
@@ -167,5 +169,40 @@ public class McanDevice extends AbstractNamedBean {
     @Override
     public String getBeanType() {
         return Bundle.getMessage("BeanNameMcanDevice");
+    }
+
+    /**
+     * Store the two challenge bytes from a factory ping reply (DLC=6, bytes 6–7).
+     * Used by the configure panel to send the correct challenge/response select frame.
+     * @param b0 byte at index 6 of the ping reply
+     * @param b1 byte at index 7 of the ping reply
+     */
+    public synchronized void setFactoryChallengeBytes(int b0, int b1) {
+        factoryChallengeBytes = new int[]{b0 & 0xFF, b1 & 0xFF};
+    }
+
+    /**
+     * Return the stored factory challenge bytes, or null if none recorded.
+     * @return two-element array [b0, b1], or null
+     */
+    public synchronized int[] getFactoryChallengeBytes() {
+        return factoryChallengeBytes != null ? factoryChallengeBytes.clone() : null;
+    }
+
+    /**
+     * Get the hardware fingerprint (bytes 9–12 of a WeichenChef Kombi ping reply).
+     * Strictly valid only for class 0x27. Returns -1 if not yet observed.
+     * @return fingerprint as long, or -1
+     */
+    public synchronized long getHwFingerprint() {
+        return hwFingerprint;
+    }
+
+    /**
+     * Set the hardware fingerprint.
+     * @param fp fingerprint value (bytes 9–12 packed into a long)
+     */
+    public synchronized void setHwFingerprint(long fp) {
+        this.hwFingerprint = fp;
     }
 }

@@ -177,6 +177,13 @@ public class McanDevicePanel extends MarklinPanel {
         frame.add(configPanel);
         frame.pack();
         frame.setVisible(true);
+        MarklinPanel panelRef = configPanel;
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                panelRef.dispose();
+            }
+        });
     }
 
     @Override

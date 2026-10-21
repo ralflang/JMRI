@@ -216,7 +216,7 @@ public class ReporterParameterService {
      * @param newId new module ID
      */
     public void writeNewModuleId(int newId) {
-        sender.sendFrame(CdBMessage.createWriteNewModuleId(getCanClass(), newId));
+        sender.sendFrame(CdBMessage.createWriteNewModuleId(getCanClass(), currentRawId, newId, 0, 0));
     }
 
     /**

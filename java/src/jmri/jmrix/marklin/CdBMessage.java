@@ -58,6 +58,18 @@ public class CdBMessage {
         }
 
         /**
+         * Return the {@code CdBDeviceClass} for the given class ID, or {@code null} if unknown.
+         * @param classId numeric CdB class ID from the CAN frame
+         * @return matching enum constant, or null
+         */
+        public static CdBDeviceClass forClassId(int classId) {
+            for (CdBDeviceClass c : values()) {
+                if (c.classId == classId) return c;
+            }
+            return null;
+        }
+
+        /**
          * Calculate the CdB ping identifier for this device class.
          * Formula: ping_id = ((C >> 4) << 21) + ((C & 0x0F) << 12) + 0x0A80
          *
@@ -240,6 +252,19 @@ public class CdBMessage {
     }
 
     /**
+     * Factory reset a selected module: write frame with subcmd=0, reg=0xFF, DLC=2.
+     * Resets all module parameters to factory defaults. Module remains selected;
+     * call startPropertyQuery() afterwards to reload the new values.
+     *
+     * @param canClass CdB device class
+     * @param moduleId raw module ID (1..127)
+     * @return 13 element raw CAN frame
+     */
+    public static int[] createFactoryReset(int canClass, int moduleId) {
+        return buildWriteFrame(canClass, moduleId, 2, new int[]{0x00, 0xFF});
+    }
+
+    /**
      * Select (connect to) a module: write frame with subcmd=0, reg=0xF7, data=[0x00, 0x01], DLC=4.
      *
      * @param canClass CdB device class
@@ -248,6 +273,21 @@ public class CdBMessage {
      */
     public static int[] createSelectModule(int canClass, int moduleId) {
         return buildWriteFrame(canClass, moduleId, 4, new int[]{0x00, 0xF7, 0x00, 0x01});
+    }
+
+    /**
+     * Select a factory-fresh module (ID=0) using challenge/response handshake.
+     * The module's ping reply (DLC=6) carries two challenge bytes at positions 6 and 7;
+     * these must be echoed back in the select frame at data bytes 4 and 5.
+     *
+     * @param canClass   CdB device class
+     * @param challenge0 byte at index 6 of the factory ping reply
+     * @param challenge1 byte at index 7 of the factory ping reply
+     * @return 13 element raw CAN frame
+     */
+    public static int[] createFactorySelectModule(int canClass, int challenge0, int challenge1) {
+        return buildWriteFrame(canClass, 0, 6,
+                new int[]{0x00, 0xF7, 0x00, 0x01, challenge0 & 0xFF, challenge1 & 0xFF});
     }
 
     /**
@@ -313,15 +353,21 @@ public class CdBMessage {
     }
 
     /**
-     * Write a new module ID (factory ID assignment, reg 5, subcmd 0).
+     * Write a new module ID (factory ID assignment, reg 2, subcmd 0).
+     * The challenge bytes from the factory ping reply must be echoed in bytes 9-10,
+     * matching the reference tool's implicit carry-over through the shared Data buffer.
      *
-     * @param canClass CdB device class
-     * @param newId new module ID to assign
+     * @param canClass   CdB device class
+     * @param moduleId   current raw module ID (0 for unassigned module)
+     * @param newId      new module ID to assign
+     * @param challenge0 byte at index 6 of the factory ping reply
+     * @param challenge1 byte at index 7 of the factory ping reply
      * @return 13 element raw CAN frame
      */
-    public static int[] createWriteNewModuleId(int canClass, int newId) {
-        return buildWriteFrame(canClass, 0, 4, new int[]{
-            0x00, 5, (newId >> 8) & 0xFF, newId & 0xFF
+    public static int[] createWriteNewModuleId(int canClass, int moduleId, int newId,
+            int challenge0, int challenge1) {
+        return buildWriteFrame(canClass, moduleId, 6, new int[]{
+            0x00, 2, (newId >> 8) & 0xFF, newId & 0xFF, challenge0 & 0xFF, challenge1 & 0xFF
         });
     }
 

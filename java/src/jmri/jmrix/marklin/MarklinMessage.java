@@ -27,6 +27,17 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
 
     static int MY_UID = 0x12345678;
 
+    private boolean replyExpected = true;
+
+    public void setReplyExpected(boolean expected) {
+        replyExpected = expected;
+    }
+
+    @Override
+    public boolean replyExpected() {
+        return replyExpected;
+    }
+
     MarklinMessage() {
         _dataChars = new int[13];
         _nDataChars = 13;

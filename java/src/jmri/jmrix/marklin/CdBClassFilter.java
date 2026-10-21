@@ -2,6 +2,8 @@ package jmri.jmrix.marklin;
 
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Intercepts OEM CAN-digital-Bahn (CdB) device configuration frames before they
@@ -191,9 +193,18 @@ public class CdBClassFilter {
             return false;
         }
         Classification c = classify(r);
+        StringBuilder raw = new StringBuilder();
+        for (int i = 0; i < 13; i++) {
+            if (i > 0) raw.append(' ');
+            raw.append(String.format("%02X", r.getElement(i)));
+        }
+        log.info("CdB frame intercepted: frameType={} canClass=0x{} module={} raw=[{}]",
+                c.getFrameType(), Integer.toHexString(c.getCanClass()), c.getModule(), raw);
         for (CdBConfigListener l : listeners) {
             l.cdBConfigReply(c, r);
         }
         return true;
     }
+
+    private static final Logger log = LoggerFactory.getLogger(CdBClassFilter.class);
 }

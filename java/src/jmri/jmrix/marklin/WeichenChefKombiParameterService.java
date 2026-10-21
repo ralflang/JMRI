@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import jmri.util.ThreadingUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Protocol service for WeichenChef Kombi (CdB class 0x27) modules.
@@ -54,6 +56,9 @@ public class WeichenChefKombiParameterService {
     private final List<WeichenChefKombiListener> listeners = new CopyOnWriteArrayList<>();
 
     private int currentRawId = 0; // 0 = none selected
+    private boolean factorySelectSent = false;
+    private int factoryChallenge0 = 0;
+    private int factoryChallenge1 = 0;
     private int moduleType = 0;
     private String chipType = null;
 
@@ -75,8 +80,11 @@ public class WeichenChefKombiParameterService {
 
     /**
      * Select a module: deselect current (if any), select new, send property query.
+     * For factory-fresh modules (rawId == 0), also sends the normal select frame first
+     * (matching the reference tool), then waits for the DLC=6 ping reply to complete
+     * the challenge/response handshake reactively.
      *
-     * @param rawId module raw ID (1..127)
+     * @param rawId module raw ID (0 for factory-fresh, 1..127 for normal modules)
      */
     public void selectModule(int rawId) {
         int canClass = getCanClass();
@@ -84,8 +92,13 @@ public class WeichenChefKombiParameterService {
             sender.sendFrame(CdBMessage.createDeselectModule(canClass, currentRawId));
         }
         currentRawId = rawId;
-        sender.sendFrame(CdBMessage.createSelectModule(canClass, rawId));
-        startPropertyQuery();
+        factorySelectSent = false;
+        if (rawId > 0) {
+            sender.sendFrame(CdBMessage.createSelectModule(canClass, rawId));
+            startPropertyQuery();
+        }
+        // rawId == 0: do NOT send a normal select — the factory handshake (DLC=6)
+        // must be the first and only select frame, sent reactively on the next ping reply.
     }
 
     /**
@@ -96,6 +109,7 @@ public class WeichenChefKombiParameterService {
             sender.sendFrame(CdBMessage.createDeselectModule(getCanClass(), currentRawId));
             currentRawId = 0;
         }
+        factorySelectSent = false;
     }
 
     /**
@@ -144,21 +158,36 @@ public class WeichenChefKombiParameterService {
     }
 
     /**
-     * Send reset frame.
+     * Send factory reset frame, then re-read all properties.
+     * The module stays selected; the UI should repopulate with factory-default values.
      */
     public void resetModule() {
         if (currentRawId == 0) return;
-        sender.sendFrame(CdBMessage.createDeselectModule(getCanClass(), currentRawId));
-        currentRawId = 0;
+        sender.sendFrame(CdBMessage.createFactoryReset(getCanClass(), currentRawId));
+        startPropertyQuery();
     }
 
     /**
      * Write new module ID (factory ID assignment flow).
+     * Sends write reg=2 to the currently selected module, then deselects.
+     * The module is no longer reachable at the old ID after this call.
      *
-     * @param newId new raw ID to assign
+     * @param newId new raw ID to assign (1..127)
      */
     public void writeNewModuleId(int newId) {
-        sender.sendFrame(CdBMessage.createWriteNewModuleId(getCanClass(), newId));
+        if (currentRawId < 0) return;
+        int canClass = getCanClass();
+        int[] writeFrame = CdBMessage.createWriteNewModuleId(canClass, currentRawId, newId,
+                factoryChallenge0, factoryChallenge1);
+        int[] deselectFrame = CdBMessage.createDeselectModule(canClass, currentRawId);
+        log.info("writeNewModuleId: currentRawId={} newId={} challenge=[{},{}] writeFrame={} deselectFrame={}",
+                currentRawId, newId,
+                String.format("%02X", factoryChallenge0), String.format("%02X", factoryChallenge1),
+                formatFrame(writeFrame), formatFrame(deselectFrame));
+        sender.sendFrame(writeFrame);
+        sender.sendFrame(deselectFrame);
+        currentRawId = 0;
+        // Keep factorySelectSent=true so subsequent pings don't re-enter the handshake
     }
 
     /**
@@ -176,8 +205,18 @@ public class WeichenChefKombiParameterService {
             if (moduleRawId > 0) {
                 final int id = moduleRawId;
                 ThreadingUtil.runOnGUI(() -> listeners.forEach(l -> l.moduleFound(id)));
-            } else if (moduleRawId == 0 && raw.getElement(4) == 6) {
-                // Factory ID assignment mode
+            } else if (moduleRawId == 0 && (raw.getElement(4) & 0xFF) == 6 && !factorySelectSent) {
+                int challenge0 = raw.getElement(6) & 0xFF;
+                int challenge1 = raw.getElement(7) & 0xFF;
+                int[] selectFrame = CdBMessage.createFactorySelectModule(getCanClass(), challenge0, challenge1);
+                log.info("Factory module ping: challenge=[{}, {}], sending select frame: {}",
+                        String.format("%02X", challenge0), String.format("%02X", challenge1),
+                        formatFrame(selectFrame));
+                currentRawId = 0;
+                factoryChallenge0 = challenge0;
+                factoryChallenge1 = challenge1;
+                factorySelectSent = true;
+                sender.sendFrame(selectFrame);
                 ThreadingUtil.runOnGUI(() -> listeners.forEach(WeichenChefKombiListener::factoryIdModeEntered));
             }
             return;
@@ -334,6 +373,12 @@ public class WeichenChefKombiParameterService {
         return 0x27; // fallback
     }
 
+    private static String formatFrame(int[] frame) {
+        StringBuilder sb = new StringBuilder();
+        for (int b : frame) sb.append(String.format("%02X ", b));
+        return sb.toString().trim();
+    }
+
     /**
      * Configuration data object for WeichenChef Kombi.
      */
@@ -346,4 +391,6 @@ public class WeichenChefKombiParameterService {
         public int[] connectionNumbers = new int[8];
         public int moduleType = 2;
     }
+
+    private static final Logger log = LoggerFactory.getLogger(WeichenChefKombiParameterService.class);
 }

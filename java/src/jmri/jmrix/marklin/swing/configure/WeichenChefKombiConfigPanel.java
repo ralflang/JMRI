@@ -21,6 +21,8 @@ public class WeichenChefKombiConfigPanel extends MarklinPanel {
 
     private final McanDevice device;
     private WeichenChefKombiParameterService service;
+    private CdBConfigListener cdBListener;
+    private MarklinSystemConnectionMemo wireMemo;
 
     // Info area
     private JLabel fwLabel;
@@ -274,11 +276,18 @@ public class WeichenChefKombiConfigPanel extends MarklinPanel {
     }
 
     private void wireService(MarklinSystemConnectionMemo memo) {
+        this.wireMemo = memo;
         McanFrameSender frameSender = (memo != null && memo.getTrafficController() != null)
             ? frame -> memo.getTrafficController().sendMarklinMessage(new MarklinMessage(frame), null)
             : frame -> {};
 
         service = new WeichenChefKombiParameterService(device, frameSender);
+
+        if (memo != null && memo.getTrafficController() != null) {
+            cdBListener = (cls, raw) -> service.handleCdBReply(cls, raw);
+            memo.getTrafficController().getCdBFilter().addCdBConfigListener(cdBListener);
+        }
+
         service.addListener(new WeichenChefKombiParameterService.WeichenChefKombiListener() {
             @Override
             public void firmwareReceived(int hi, int lo) {
@@ -402,6 +411,15 @@ public class WeichenChefKombiConfigPanel extends MarklinPanel {
     private void onApplyNewId() {
         int newId = (Integer) newIdSpinner.getValue();
         service.writeNewModuleId(newId);
+        // Close the dialog — triggers dispose() via the window listener, which deselects.
+        // Then re-discover so the module can respond at its new ID after rebooting.
+        SwingUtilities.getWindowAncestor(this).dispose();
+        if (wireMemo != null) {
+            McanDeviceManager mgr = wireMemo.getMcanDeviceManager();
+            if (mgr != null) {
+                mgr.discoverCdBDevice(CdBMessage.CdBDeviceClass.WEICHEN_CHEF_KOMBI);
+            }
+        }
     }
 
     private void onTestOutput(int idx, boolean gruen) {
@@ -444,6 +462,10 @@ public class WeichenChefKombiConfigPanel extends MarklinPanel {
 
     @Override
     public void dispose() {
+        if (cdBListener != null && wireMemo != null && wireMemo.getTrafficController() != null) {
+            wireMemo.getTrafficController().getCdBFilter().removeCdBConfigListener(cdBListener);
+            cdBListener = null;
+        }
         if (service != null) {
             service.deselectModule();
         }

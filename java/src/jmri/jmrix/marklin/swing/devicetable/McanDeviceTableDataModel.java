@@ -128,7 +128,12 @@ public class McanDeviceTableDataModel extends AbstractTableModel implements Prop
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
-        ThreadingUtil.runOnGUI(this::fireTableDataChanged);
+        ThreadingUtil.runOnGUI(() -> {
+            int row = devices.indexOf(evt.getSource());
+            if (row >= 0) {
+                fireTableRowsUpdated(row, row);
+            }
+        });
     }
 
     public McanDevice getDeviceAt(int row) {

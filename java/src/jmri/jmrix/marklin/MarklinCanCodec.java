@@ -220,9 +220,13 @@ public class MarklinCanCodec {
         int[] hash = new int[]{rawMessage[2] & 0xFF, rawMessage[3] & 0xFF};
 
         // Data length code (number of data bytes, 0-8)
+        // The 13-byte frame has bytes 5-12 as payload; bytes 5-8 overlap with the
+        // decoded "address" field. Data extraction starts at byte 9, so a DLC > 4
+        // would run past the end of the 13-byte frame. Clamp to what actually fits.
         int dataLength = rawMessage[4] & 0xFF;
-        if (dataLength > 8) {
-            dataLength = 8;
+        int maxData = rawMessage.length - 9; // bytes remaining after the address field
+        if (dataLength > maxData) {
+            dataLength = Math.max(0, maxData);
         }
 
         // Decode address (big-endian, 32-bit)

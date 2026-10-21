@@ -3,6 +3,8 @@ package jmri.jmrix.marklin;
 import java.util.Objects;
 import jmri.Manager;
 import jmri.managers.AbstractManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Manager for discovering, tracking, and maintaining MCAN devices on a Märklin connection.
@@ -68,6 +70,7 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
                 .setResponse(false)
                 .build();
         MarklinMessage msg = new MarklinMessage(encodedPing);
+        msg.setReplyExpected(false);
         memo.getTrafficController().sendMarklinMessage(msg, null);
     }
 
@@ -83,8 +86,17 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
             return;
         }
         int[] rawFrame = CdBMessage.createClassPing(deviceClass);
+        log.info("CdB discovery ping for {} (class 0x{}) frame: {}", deviceClass.getDisplayName(),
+                Integer.toHexString(deviceClass.getClassId()), formatFrame(rawFrame));
         MarklinMessage msg = new MarklinMessage(rawFrame);
+        msg.setReplyExpected(false);
         memo.getTrafficController().sendMarklinMessage(msg, null);
+    }
+
+    private static String formatFrame(int[] frame) {
+        StringBuilder sb = new StringBuilder();
+        for (int b : frame) sb.append(String.format("%02X ", b));
+        return sb.toString().trim();
     }
 
     /**
@@ -160,7 +172,26 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
         int canClass = classification.getCanClass();
         int module = classification.getModule();
 
+        log.info("CdB config reply received: frameType={} canClass=0x{} module={}",
+                classification.getFrameType(), Integer.toHexString(canClass), module);
+
         if (module < 0) {
+            return;
+        }
+
+        // Only PING_REPLY frames prove a device exists at this class+module combination.
+        // READ_REPLY and WRITE frames are config protocol traffic for an already-selected
+        // module and must not create phantom entries in the device table.
+        if (classification.getFrameType() != CdBClassFilter.CdBFrameType.PING_REPLY) {
+            return;
+        }
+
+        // A genuine discovery ping reply always carries payload (DLC > 0).
+        // Post-deselect status broadcasts use DLC=0 and are classified as PING_REPLY
+        // due to their CAN ID structure, but they are not device advertisements.
+        if ((rawReply.getElement(4) & 0xFF) == 0) {
+            log.debug("Ignoring DLC=0 PING_REPLY for canClass=0x{} module={} (post-deselect broadcast)",
+                    Integer.toHexString(canClass), module);
             return;
         }
 
@@ -168,6 +199,53 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
         McanDevice device = provideDevice(identity);
         device.touch();
         device.setDeviceState(McanDeviceState.ONLINE);
+
+        // Factory-fresh module: stash challenge bytes so the configure dialog can use them
+        if (module == 0
+                && classification.getFrameType() == CdBClassFilter.CdBFrameType.PING_REPLY
+                && (rawReply.getElement(4) & 0xFF) == 6) {
+            device.setFactoryChallengeBytes(rawReply.getElement(6) & 0xFF, rawReply.getElement(7) & 0xFF);
+        }
+
+        // Hardware fingerprint tracking — strictly class 0x27 (WeichenChef Kombi) only.
+        // Bytes 9–12 of the ping reply are stable per physical device across ID changes.
+        // FF C7 suffix means factory-fresh (not yet commissioned), skip it.
+        if (canClass == 0x27
+                && classification.getFrameType() == CdBClassFilter.CdBFrameType.PING_REPLY) {
+            int b9  = rawReply.getElement(9)  & 0xFF;
+            int b10 = rawReply.getElement(10) & 0xFF;
+            int b11 = rawReply.getElement(11) & 0xFF;
+            int b12 = rawReply.getElement(12) & 0xFF;
+            if (!(b11 == 0xFF && b12 == 0xC7)) {
+                long fp = ((long) b9 << 24) | ((long) b10 << 16) | ((long) b11 << 8) | b12;
+                long existingFp = device.getHwFingerprint();
+                if (existingFp == -1L) {
+                    device.setHwFingerprint(fp);
+                } else if (existingFp != fp) {
+                    log.warn("WeichenChef Kombi fingerprint mismatch on {}: had 0x{} got 0x{}",
+                            device.getSystemName(),
+                            Long.toHexString(existingFp), Long.toHexString(fp));
+                }
+                // Look for a stale entry with this fingerprint under a different system name
+                for (McanDevice existing : getNamedBeanSet()) {
+                    if (existing == device) continue;
+                    McanDeviceIdentity existingId = existing.getIdentity();
+                    if (!existingId.isCdB()) continue;
+                    if (((McanDeviceIdentity.CdB) existingId).getCanClass() != 0x27) continue;
+                    if (existing.getHwFingerprint() != fp) continue;
+                    // Same physical device, different module ID — carry user name across
+                    String oldUserName = existing.getUserName();
+                    log.info("WeichenChef Kombi fingerprint match: migrating user name '{}' from {} to {}",
+                            oldUserName, existing.getSystemName(), device.getSystemName());
+                    deregister(existing);
+                    if (oldUserName != null && !oldUserName.isEmpty()) {
+                        device.setUserName(oldUserName);
+                    }
+                    device.setHwFingerprint(fp);
+                    break;
+                }
+            }
+        }
     }
 
     @Override
@@ -178,4 +256,6 @@ public class McanDeviceManager extends AbstractManager<McanDevice> implements Ma
         }
         super.dispose();
     }
+
+    private static final Logger log = LoggerFactory.getLogger(McanDeviceManager.class);
 }
