@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
 import org.openlcb.EventID;
@@ -59,6 +60,34 @@ public class OlcbSensorTest extends jmri.implementation.AbstractSensorTestBase {
     @Test
     @Override
     public void testCommandSentInactive() {}
+
+    /**
+     * OlcbSensor routes state changes through an async loopback in OlcbInterface.
+     * ti.flush() drains the send queue and waits for all loopback callbacks to
+     * complete before asserting, replacing the base-class waitFor polling.
+     */
+    @Test
+    @Override
+    public void testSensor() throws JmriException {
+        t.setState(Sensor.ON);
+        ti.flush();
+        assertEquals(Sensor.ON, t.getState(), "Sensor is ON");
+        t.setState(Sensor.OFF);
+        ti.flush();
+        assertEquals(Sensor.OFF, t.getState(), "Sensor is OFF");
+        t.setCommandedState(Sensor.ON);
+        ti.flush();
+        assertEquals(Sensor.ON, t.getState(), "Sensor is ON");
+        t.setCommandedState(Sensor.OFF);
+        ti.flush();
+        assertEquals(Sensor.OFF, t.getState(), "Sensor is OFF");
+        t.setState(Sensor.ON);
+        ti.flush();
+        assertEquals(Sensor.ON, t.getCommandedState(), "Sensor is ON");
+        t.setState(Sensor.OFF);
+        ti.flush();
+        assertEquals(Sensor.OFF, t.getCommandedState(), "Sensor is OFF");
+    }
 
     @Override
     public void checkStatusRequestMsgSent() {
