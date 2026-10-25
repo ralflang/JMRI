@@ -14,6 +14,7 @@ import jmri.jmrix.marklin.MarklinThrottleManager;
 import jmri.jmrix.marklin.MarklinTurnoutManager;
 import jmri.jmrix.marklin.MarklinPowerManager;
 import jmri.jmrix.marklin.MarklinSystemConnectionMemo;
+import jmri.jmrix.marklin.McanDeviceManager;
 
 /**
  * Lightweight class to denote that a system is active, and provide general
@@ -86,7 +87,11 @@ public class CdBSystemConnectionMemo extends MarklinSystemConnectionMemo {
 
         SensorManager sensorManager = new MarklinSensorManager(this);
         InstanceManager.setSensorManager(sensorManager);
-        store(throttleManager,ThrottleManager.class);
+        store(sensorManager, SensorManager.class);
+
+        McanDeviceManager mcanDeviceManager = new McanDeviceManager(this);
+        store(mcanDeviceManager, McanDeviceManager.class);
+        InstanceManager.store(mcanDeviceManager, McanDeviceManager.class);
 
         register();
     }
