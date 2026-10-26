@@ -98,7 +98,8 @@ public class WeichenChefKombiConfigPanel extends MarklinPanel {
         newIdLabel.setOpaque(true);
         newIdLabel.setBackground(new Color(255, 192, 128));
         factoryIdPanel.add(newIdLabel);
-        newIdSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 99, 1));
+        // CdB module IDs are 7-bit: valid range is 1..127 (0 is the broadcast/unaddressed slot).
+        newIdSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 127, 1));
         factoryIdPanel.add(newIdSpinner);
         JButton applyIdButton = new JButton(Bundle.getMessage("WcKombiButtonApplyId"));
         applyIdButton.setBackground(new Color(255, 192, 128));
@@ -442,7 +443,10 @@ public class WeichenChefKombiConfigPanel extends MarklinPanel {
     }
 
     private void onApplyNewId() {
-        int newId = (Integer) newIdSpinner.getValue();
+        // The spinner's editor already rejects out-of-range typed input, but clamp
+        // defensively here so no code path can ever send a module ID outside the
+        // protocol's 7-bit 1..127 range on the wire.
+        int newId = Math.max(1, Math.min(127, (Integer) newIdSpinner.getValue()));
         service.writeNewModuleId(newId);
         // Close the dialog  -  triggers dispose() via the window listener, which deselects.
         // Then re-discover so the module can respond at its new ID after rebooting.
