@@ -1,6 +1,7 @@
 package jmri.jmrit.vsdecoder.swing;
 
 import jmri.*;
+import jmri.util.JUnitAppender;
 import jmri.util.JUnitUtil;
 
 import org.junit.Assert;
@@ -31,6 +32,8 @@ public class VSDecoderPreferencesPaneTest {
     public void tearDown() {
         JUnitUtil.removeMatchingThreads("VSDecoderManagerThread");
         JUnitUtil.clearShutDownManager();
+        // No OpenAL hardware available in headless CI
+        JUnitAppender.suppressWarnMessage("Error loading OpenAL libraries: Could not initialize class jogamp.openal.ALImpl");
         JUnitUtil.tearDown();
     }
 
