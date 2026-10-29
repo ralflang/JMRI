@@ -3,11 +3,13 @@ package jmri.jmrit.operations.trains.csv;
 import java.io.*;
 
 import org.junit.Assert;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import jmri.InstanceManager;
 import jmri.jmrit.operations.OperationsTestCase;
 import jmri.jmrit.operations.locations.*;
+import jmri.util.JUnitAppender;
 import jmri.jmrit.operations.rollingstock.cars.*;
 import jmri.jmrit.operations.rollingstock.engines.Engine;
 import jmri.jmrit.operations.rollingstock.engines.EngineManager;
@@ -70,9 +72,9 @@ public class TrainCsvSwitchListsTest extends OperationsTestCase {
 
         JUnitOperationsUtil.checkOperationsShutDownTask();
     }
-    
+
     @Test
-    public void testCsvSwtichListDisabled() throws IOException {       
+    public void testCsvSwtichListDisabled() throws IOException {
         Assert.assertEquals("confirm default", false, Setup.isGenerateCsvSwitchListEnabled());
         TrainCsvSwitchLists tcsl = new TrainCsvSwitchLists();
         Assert.assertNotNull("exists", tcsl);
@@ -118,7 +120,7 @@ public class TrainCsvSwitchListsTest extends OperationsTestCase {
         // test no new work
         tcsl.buildSwitchList(locationA);
         InstanceManager.getDefault(TrainManager.class).setTrainsSwitchListStatus(Train.PRINTED);
-        
+
         File switchListFileA = InstanceManager.getDefault(TrainManagerXml.class).getCsvSwitchListFile(locationA.getName());
         Assert.assertTrue(switchListFileA.exists());
 
@@ -139,7 +141,7 @@ public class TrainCsvSwitchListsTest extends OperationsTestCase {
         Assert.assertTrue(train2.build());
 
         locationA.setSwitchListState(Location.SW_APPEND);
-        
+
         tcsl.buildSwitchList(locationA);
         InstanceManager.getDefault(TrainManager.class).setTrainsSwitchListStatus(Train.PRINTED);
 
@@ -152,7 +154,7 @@ public class TrainCsvSwitchListsTest extends OperationsTestCase {
 
     /**
      * Creates a switch list for a train that visits a location twice
-     * 
+     *
      * @throws IOException for switch lists
      */
     @Test
@@ -390,6 +392,15 @@ public class TrainCsvSwitchListsTest extends OperationsTestCase {
         inD.close();
 
         JUnitOperationsUtil.checkOperationsShutDownTask();
+    }
+
+    @AfterEach
+    @Override
+    public void tearDown() {
+        // train.build() calls HardcopyWriter which checks for a default printer
+        // GitHub Headless CI has no print service.
+        JUnitAppender.suppressWarnMessage("No default printer found");
+        super.tearDown();
     }
 
     /**
