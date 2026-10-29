@@ -518,6 +518,12 @@ public class AutoTrainsTurnTableTest {
     @BeforeEach
     public void setUp() throws IOException {
         JUnitUtil.setUp();
+        // These tests drive a multi-step simulated train run with many sequential waitFor
+        // checks. On loaded CI runners the normal 10 seconds per waitFor is sometimes exceeded but 20 seconds should work.
+        // Local test runs on dedicated systems stay strict at the default 10 seconds.
+        if ("true".equals(System.getenv("CI"))) {
+            JUnitUtil.WAITFOR_MAX_DELAY = 20000;
+        }
         JUnitUtil.resetFileUtilSupport();
         // set up users files in temp tst area
         outBaseTrainInfo = new File(FileUtil.getUserFilesPath(), "dispatcher/traininfo");
