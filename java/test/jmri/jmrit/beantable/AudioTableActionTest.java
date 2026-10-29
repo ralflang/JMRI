@@ -1,6 +1,7 @@
 package jmri.jmrit.beantable;
 
 import jmri.Audio;
+import jmri.util.JUnitAppender;
 import jmri.util.JUnitUtil;
 import jmri.util.ThreadingUtil;
 import jmri.util.junit.annotations.*;
@@ -133,6 +134,9 @@ public class AudioTableActionTest extends AbstractTableActionBase<Audio> {
     @Override
     public void tearDown() {
         JUnitUtil.clearShutDownManager(); // should be converted to check of scheduled ShutDownActions
+        // No OpenAL hardware available in headless CI
+        JUnitAppender.suppressWarnMessage("Error initialising JOAL");
+        JUnitAppender.suppressWarnMessage("Error loading OpenAL libraries: Could not initialize class jogamp.openal.ALImpl");
         JUnitUtil.tearDown();
         a = null;
     }
