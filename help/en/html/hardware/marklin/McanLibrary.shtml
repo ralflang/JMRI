@@ -53,7 +53,7 @@
       <code>MarklinMessage.getFrame()</code> return this classification, cached until the
       bytes change. The traffic controller hands each CdB configuration frame once to the
       registered CdB configuration listeners and then delivers every frame, including CdB
-      frames, to all ordinary Märklin listeners such as the traffic monitor.</p>
+      frames, to all ordinary M&auml;rklin listeners such as the traffic monitor.</p>
 
       <h3>Package Structure</h3>
 
