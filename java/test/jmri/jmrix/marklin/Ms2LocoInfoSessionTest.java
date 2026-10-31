@@ -2,10 +2,25 @@ package jmri.jmrix.marklin;
 
 import java.util.ArrayList;
 import java.util.List;
+import jmri.util.JUnitUtil;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class Ms2LocoInfoSessionTest {
+
+    @BeforeEach
+    public void setUp() {
+        JUnitUtil.setUp();
+    }
+
+    @AfterEach
+    public void tearDown() {
+        JUnitUtil.tearDown();
+    }
+
     @Test
     void overallDeadlineAndCancellationNeverLeaveQueuedFramesActive() {
         List<String> errors = new ArrayList<>();
