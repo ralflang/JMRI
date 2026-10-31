@@ -69,6 +69,9 @@ public final class Ms2LocoInfoSession {
     public int getFailures() { return failures; }
 
     /** Elapsed milliseconds since this acquisition began. */
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS",
+            justification = "null means no frame is due yet, distinct from an empty frame")
+    @javax.annotation.CheckForNull
     public int[] nextFrame(long now) {
         if (finished) {
             return null;

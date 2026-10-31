@@ -185,7 +185,7 @@ public final class Ms2LocoInfoService implements MarklinListener {
         for (String line : text.split("\\r?\\n")) {
             String token = line.strip();
             if ((token.startsWith(".idx=") || token.equals("lok") || token.equals("lokomotive")
-                    || (token.startsWith(".name=") && hasName)) && hasName) {
+                    || token.startsWith(".name=")) && hasName) {
                 entries.add(current.toString());
                 current.setLength(0);
                 hasName = false;

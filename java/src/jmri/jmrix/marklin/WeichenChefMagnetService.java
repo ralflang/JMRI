@@ -209,9 +209,9 @@ public class WeichenChefMagnetService implements McanDeviceService {
     private void sendSequence(List<int[]> frames, int token, Runnable finished) {
         for (int i = 0; i < frames.size(); i++) {
             int[] frame = frames.get(i);
-            later(token, i * FRAME_INTERVAL_MS, () -> sender.sendFrame(frame));
+            later(token, (long) i * FRAME_INTERVAL_MS, () -> sender.sendFrame(frame));
         }
-        later(token, frames.size() * FRAME_INTERVAL_MS + 300, finished);
+        later(token, (long) frames.size() * FRAME_INTERVAL_MS + 300, finished);
     }
 
     private void later(int token, long delay, Runnable action) {
