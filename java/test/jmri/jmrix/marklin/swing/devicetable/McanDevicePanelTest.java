@@ -90,12 +90,10 @@ class McanDevicePanelTest {
                 frame.setVisible(true);
                 java.awt.Container checkboxRow = panel.getCdbClassCheckBoxes().values()
                         .iterator().next().getParent();
+                // The packed window may already wrap when the screen is narrow (e.g. CI).
                 dimensions[0] = frame.getWidth();
                 dimensions[1] = checkboxRow.getHeight();
-                dimensions[2] = checkboxRow.getComponent(0).getY();
-                for (java.awt.Component checkbox : checkboxRow.getComponents()) {
-                    assertEquals(dimensions[2], checkbox.getY());
-                }
+                dimensions[2] = rowCount(checkboxRow);
 
                 frame.setSize(dimensions[0] / 2, frame.getHeight());
                 frame.validate();
@@ -107,8 +105,7 @@ class McanDevicePanelTest {
                         .iterator().next().getParent();
                 assertTrue(checkboxRow.getHeight() > dimensions[1],
                         "Checkbox area must grow to accommodate wrapped rows");
-                assertTrue(java.util.Arrays.stream(checkboxRow.getComponents())
-                        .anyMatch(checkbox -> checkbox.getY() > dimensions[2]));
+                assertTrue(rowCount(checkboxRow) > dimensions[2], "Checkboxes must wrap onto more rows");
                 for (java.awt.Component checkbox : checkboxRow.getComponents()) {
                     assertTrue(checkbox.getX() >= 0);
                     assertTrue(checkbox.getX() + checkbox.getWidth() <= checkboxRow.getWidth());
@@ -125,9 +122,7 @@ class McanDevicePanelTest {
                 java.awt.Container checkboxRow = panel.getCdbClassCheckBoxes().values()
                         .iterator().next().getParent();
                 assertEquals(dimensions[1], checkboxRow.getHeight());
-                for (java.awt.Component checkbox : checkboxRow.getComponents()) {
-                    assertEquals(dimensions[2], checkbox.getY());
-                }
+                assertEquals(dimensions[2], rowCount(checkboxRow));
             });
         } finally {
             javax.swing.SwingUtilities.invokeAndWait(() -> {
@@ -135,6 +130,11 @@ class McanDevicePanelTest {
                 panel.dispose();
             });
         }
+    }
+
+    private static int rowCount(java.awt.Container row) {
+        return (int) java.util.Arrays.stream(row.getComponents()).mapToInt(java.awt.Component::getY)
+                .distinct().count();
     }
 
     @Test

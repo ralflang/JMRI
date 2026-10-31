@@ -42,7 +42,7 @@ public class CdBClassFilter {
      * @param r incoming 13-byte frame
      * @return true for a CdB configuration frame
      * @deprecated since 5.17.5; use {@link ProtocolClassifier#classify(int[])} and test for
-     *             {@link CdBFrameParser.CdBFrame}, or {@link #offer(MarklinReply)}.
+     *             {@link jmri.jmrix.marklin.mcan.cdb.CdBFrameParser.CdBFrame}, or {@link #offer(MarklinReply)}.
      */
     @Deprecated(since = "5.17.5", forRemoval = true)
     public static boolean isCdBConfigFrame(MarklinReply r) {

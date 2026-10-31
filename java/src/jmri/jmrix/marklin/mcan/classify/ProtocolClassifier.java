@@ -12,7 +12,7 @@ import jmri.jmrix.marklin.mcan.cs2.Cs2Header;
  * <p>
  * Determines the protocol family and returns the fully parsed, typed frame:
  * a {@link jmri.jmrix.marklin.mcan.cs2.Cs2Frame} subtype, a
- * {@link CdBFrameParser.CdBFrame} subtype or an {@link UnknownFrame}.
+ * {@link jmri.jmrix.marklin.mcan.cdb.CdBFrameParser.CdBFrame} subtype or an {@link UnknownFrame}.
  * <p>
  * This package sits above {@code cs2} and {@code cdb}; neither may depend on it.
  */
