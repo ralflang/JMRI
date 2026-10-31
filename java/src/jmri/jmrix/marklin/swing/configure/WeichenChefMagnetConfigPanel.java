@@ -52,10 +52,10 @@ import jmri.jmrix.marklin.swing.MarklinPanel;
  *
  * The vendor provides three generations of config program 001, 002 and 012 and a separate reset tool.
  * 002 and 012 seem to target WeichenChef Magnet 2.0 and 2.1 devices.
- * See https://can-digital-bahn.com/modul.php?system=all&modul=62#Mod_Top
+ * See https://can-digital-bahn.com/modul.php?system=all&amp;modul=62#Mod_Top
  *
  * 001 seems to target WeichenChef Magnet 1.x and WeichenChef Deluxe.
- * https://can-digital-bahn.com/modul.php?system=all&modul=8#Mod_Top
+ * https://can-digital-bahn.com/modul.php?system=all&amp;modul=8#Mod_Top
  *
  * Production of WeichenChef Magnet seems to have ceased in favour of the newer lineup:
  * WeichenChef Basic (externally powered, magnet only) and WeichenChef Kombi (bus powered, motor and magnet). These support "MM", "DCC" and "CAN" each.
