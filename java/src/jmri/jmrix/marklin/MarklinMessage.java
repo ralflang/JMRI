@@ -38,7 +38,8 @@ public class MarklinMessage extends jmri.jmrix.AbstractMRMessage {
      * message's bytes change.
      *
      * @return a {@link jmri.jmrix.marklin.mcan.cs2.Cs2Frame},
-     *         {@link jmri.jmrix.marklin.mcan.cdb.CdBFrameParser.CdBFrame} or
+     *         {@link jmri.jmrix.marklin.mcan.cdb.CdBFrameParser.CdBFrame},
+     *         {@link jmri.jmrix.marklin.mcan.cs1.Cs1Frame} or
      *         {@link jmri.jmrix.marklin.mcan.UnknownFrame}
      */
     public jmri.jmrix.marklin.mcan.McanFrame getFrame() {
