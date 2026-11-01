@@ -26,11 +26,14 @@
       <p>Frame encoding and decoding live in the <code>jmri.jmrix.marklin.mcan</code> package
       tree. These classes do not depend on the JMRI application layer. The adapter, the
       monitor and standalone tools such as the MCAN TCP Bridge share the same frame handling.
-      This independence is enforced by a unit test.</p>
+      This independence is enforced by a unit test.
+      The jmri.jmrix.marklin.mcan package's pureness is motivated by the desire to keep frame handling independent of the application layer or transmission and timing concerns.
+      The mcan package operates purely on data in the frame without out-of-band knowledge.
+      </p>
 
       <p><code>ProtocolClassifier.classify()</code> turns every 13-byte frame into exactly one
-      typed frame. All of them extend the common base class <code>McanFrame</code>, which
-      gives access to the raw bytes and the protocol family:</p>
+      typed frame. All of them extend the common base class <code>McanFrame</code>. All McanFrame instances and subtypes
+      give access to the raw bytes and the protocol family:</p>
       <ul>
         <li><strong>CS2 native</strong> frames (M&auml;rklin CS2 CAN protocol) become a
             <code>Cs2Frame</code> or one of its typed subclasses. A CS2 frame with an
@@ -41,19 +44,60 @@
             <code>CdBFrameParser.CdBFrame</code> or one of its typed subclasses. Builders are in
             <code>CdBConfigCommands</code> and the device-specific <code>CdB...Commands</code>
             classes.</li>
-        <li>Frames matching neither pattern become an <code>UnknownFrame</code>. It keeps the
-            raw bytes but does not interpret any header fields.</li>
+        <li><strong>CS1/MS1 M-CAN</strong> frames become a <code>Cs1Frame</code> even for
+            commands not yet modelled. Documented can frame shapes are decoded into typed subclasses
+            with payload accessors. Unmodelled or ambiguous shapes retain the plain base
+            class. This is the protocol spoken between a MS1 and a CS1, CS1Reloaded, ECoS and
+            CS2 rather than ESU's separate and more modern ECoSLink E-CAN protocol.
+            A CS1 with old firmware speaks this protocol, too, while a CS1 Reloaded only uses it as a compat mode with MS1 throttles and natively speaks modern ECAN in all other cases.</li>
+        <li>Frames matching none of these patterns become an <code>UnknownFrame</code>.
+          It keeps the raw bytes but does not interpret any header fields.</li>
       </ul>
+
+      <p>Classification tries CS2 first, CdB second and CS1/MS1 last. MS1 recognition
+      follows the <a href="https://www.skrauss.de/modellbahn/CAN_Doku_V101.pdf">MS1 CAN documentation,
+      version 1.1</a> (sections 6.1, 6.2, 6.3.1 and 9.3). We identify CS1/MS1 frames by a structural heuristic rather than a unique fingerprint.
+      Operating recognition requires an assigned node (0-125),
+      priority 2-6 and command bits other than 110 (reserved for
+      CS2). Handles are nonzero except for priority-3 monitoring with a valid payload.
+      The MS1 master probe with identifier 0x380 is also recognised. Registration UID bytes
+      occupy bits 25-18, stages 17-15 and modifiers 14-10.
+      </p>
+
+      <p><code>Cs1FrameParser</code> decodes registration and node assignment
+      (<code>Cs1ConfigCommands</code>), bus supervision and system changes
+      (<code>Cs1SystemCommands</code>), object allocation/directory handles, identification,
+      segmented properties/names, indexed descriptions and speed parameters
+      exchanges (<code>Cs1ObjectCommands</code>), locomotive display metadata, ownership
+      programming/reset, raw volume data and stack changes (<code>Cs1DecoderCommands</code>).
+      </p>
+
+      <p>CS1 object handles are assigned for a session, not track addresses. Indexed
+      system status and locomotive function/speed values can have identical wire layouts,
+      so <code>IndexedValueFrame</code> exposes the raw index and value without guessing
+      their meaning, including priority-4 values. Monitoring carries a target node and
+      device UID. Whether it is a poll, identity or reset requires session context.
+
+      Optional and sliced fields never read padding beyond DLC. Firmware
+      flag decoding follows the documentation's tables and trace rather than conflicting
+      prose. The ambiguous stage-3 identity-query/completion frame remains a plain
+      <code>Cs1Frame</code>. Payload lengths are checked before choosing a typed subclass.
+      Padding beyond DLC is never presented as received data.</p>
 
       <p>Callers test the result with <code>instanceof</code> or switch on
       <code>protocol()</code>. Malformed input (null or not 13 bytes) is rejected with an
       exception rather than reported as an unknown frame.</p>
 
-      <p>Inside JMRI, <code>MarklinReply.getFrame()</code> and
-      <code>MarklinMessage.getFrame()</code> return this classification, cached until the
-      bytes change. The traffic controller hands each CdB configuration frame once to the
+      <p>Inside JMRI code the <code>MarklinReply.getFrame()</code> and
+      <code>MarklinMessage.getFrame()</code> methods return this classification.
+      It is cached until the bytes change on MarklinMessage.
+      MarklinReply aren't supposed to change after the fact.
+      The traffic controller hands each CdB configuration frame once to the
       registered CdB configuration listeners and then delivers every frame, including CdB
-      frames, to all ordinary M&auml;rklin listeners such as the traffic monitor.</p>
+      frames, to all ordinary M&auml;rklin listeners such as the traffic monitor.
+      The MarklinMessage/MarklinReply distinction is a JMRI level concept. It discerns if it's incoming traffic from the layout adapter or traffic generated by JMRI.
+      It is independent of the protocol level command/response bit. A MarklinReply can carry a command frame.
+    </p>
 
       <h3>Package Structure</h3>
 
@@ -61,7 +105,7 @@
       <table>
         <tr><th>Package</th><th>Intent</th></tr>
         <tr><td><code>mcan</code></td>
-            <td>Types shared by all protocol families: the frame base class
+            <td>Types shared by all protocol families: The frame base class
             <code>McanFrame</code>, <code>UnknownFrame</code>, <code>RawFrame</code> and
             <code>FrameProtocol</code>. <code>McanUid</code> is the 32-bit
             UID of a device on the bus (CS2, MS2, Gleisbox, ...). It provides unsigned
@@ -69,8 +113,8 @@
             It is not used for mfx decoder UIDs or Loc-IDs.</td></tr>
         <tr><td><code>mcan.classify</code></td>
             <td>Entry point for received frames. <code>ProtocolClassifier</code> recognises the
-            protocol family and calls the matching parser. It depends on <code>mcan.cs2</code>
-            and <code>mcan.cdb</code> Neither of those depends on it.</td></tr>
+            protocol family and calls the matching parser. It depends on <code>mcan.cs2</code>,
+            <code>mcan.cdb</code> and <code>mcan.cs1</code>. None of those depends on it.</td></tr>
         <tr><td><code>mcan.cs2</code></td>
             <td>M&auml;rklin CS2 native protocol: Header, data and command types,
             <code>Cs2Frame</code> and its typed subclasses, frame builders and parsers grouped
@@ -79,12 +123,15 @@
             <td>CAN-digital-Bahn configuration protocol: <code>CdBFrameType</code>, typed frames,
             frame builders and parsers, module-specific command sets (WeichenChef, LampenChef, Reporter) and the
             <code>CdBDeviceClass</code> catalogue of known module classes.</td></tr>
+        <tr><td><code>mcan.cs1</code></td>
+            <td>CS1/MS1 M-CAN protocol: <code>Cs1Frame</code> base/fallback type,
+            <code>Cs1ObjectFrame</code> operating header, <code>Cs1FrameParser</code>
+            and typed subclasses grouped by command family. Registration and firmware
+            frames have their own header accessors.</td></tr>
         <tr><td><code>mcan.address</code></td>
             <td>Address arithmetic. <code>AddressSpace</code> handles native MS2 and throttle protocol
             address ranges. <code>CdBAddressCodec</code> and <code>AddressEncoding</code>
-            convert DCC/MM/CAN user addresses to and from CdB register values. The
-            <code>AddressCodec</code> interface has only one implementation and no callers
-            yet. It may be removed.</td></tr>
+            convert DCC/MM/CAN user addresses to and from CdB register values.
       </table>
 
       <p>Device UIDs in the public API are <code>McanUid</code> values. For example, the
