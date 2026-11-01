@@ -11,7 +11,9 @@ import java.util.Objects;
  *       unrecognised command ({@code Cs2Command.UNKNOWN})</li>
  *   <li>{@link jmri.jmrix.marklin.mcan.cdb.CdBFrameParser.CdBFrame}: CdB configuration bus,
  *       possibly with an unrecognised frame type ({@code CdBFrameType.UNKNOWN})</li>
- *   <li>{@link UnknownFrame}: neither protocol family matched</li>
+ *   <li>{@link jmri.jmrix.marklin.mcan.cs1.Cs1Frame}: CS1/MS1 M-CAN protocol,
+ *       with typed subclasses for documented layouts</li>
+ *   <li>{@link UnknownFrame}: no protocol family matched</li>
  * </ul>
  * The hierarchy is closed by convention. New protocol families get a new direct subtype
  * and a new {@link FrameProtocol} value. Instances are produced by

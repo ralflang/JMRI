@@ -1,8 +1,8 @@
 package jmri.jmrix.marklin.mcan;
 
 /**
- * A valid 13-byte frame that matches neither the CS2 native nor the CdB configuration
- * pattern, for example CS1, ECoS or not yet modelled traffic.
+ * A valid 13-byte frame that matches none of the CS2, CdB or CS1/MS1 patterns,
+ * for example undocumented ECoSLink E-CAN or not yet modelled traffic.
  * <p>
  * Only protocol-neutral access is offered. No header fields are interpreted.
  */
